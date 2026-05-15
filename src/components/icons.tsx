@@ -1,3 +1,4 @@
+// src/components/icons.tsx
 type IconProps = React.SVGProps<SVGSVGElement>;
 
 const svg = (paths: React.ReactNode) =>
@@ -113,6 +114,13 @@ export const Icon = {
     <>
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
+    </>,
+  ),
+  // ADICIONADO AQUI: Novo ícone para a página de perfil
+  User: svg(
+    <>
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </>,
   ),
 };
