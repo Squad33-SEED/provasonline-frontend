@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { ROLE_COOKIE, TOKEN_COOKIE } from "@/lib/auth";
+import {
+  PWD_CHANGE_COOKIE,
+  ROLE_COOKIE,
+  TOKEN_COOKIE,
+} from "@/lib/auth";
 import { API_URL } from "@/lib/api";
 
 export async function POST() {
@@ -17,6 +21,7 @@ export async function POST() {
 
   jar.delete(TOKEN_COOKIE);
   jar.delete(ROLE_COOKIE);
+  jar.delete(PWD_CHANGE_COOKIE);
 
   return NextResponse.json({ ok: true });
 }
