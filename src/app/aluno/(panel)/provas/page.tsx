@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel, Tag } from "@/components/app-shell";
 import { getEtapasDisponiveis, type EtapaDisponivel } from "@/lib/aluno";
@@ -21,6 +22,7 @@ function formatarHora(iso: string): string {
 }
 
 export default function ProvasAluno() {
+  const router = useRouter();
   const [etapas, setEtapas] = useState<EtapaDisponivel[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -111,8 +113,8 @@ export default function ProvasAluno() {
                 <div className="mt-4 flex items-center justify-end">
                   {e.ativa ? (
                     <Button
-                      disabled
-                      className="h-8 rounded-lg bg-amber-400 px-4 text-xs font-semibold text-[#0c1a33] opacity-50"
+                      onClick={() => router.push(`/aluno/prova/${e.id}/iniciar`)}
+                      className="h-8 rounded-lg bg-amber-400 px-4 text-xs font-semibold text-[#0c1a33] hover:bg-amber-300"
                     >
                       Iniciar prova
                     </Button>
