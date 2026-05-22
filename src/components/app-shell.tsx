@@ -41,7 +41,7 @@ export function AppShell({ role, roleTag, nav, children }: Props) {
       />
 
       <aside className="relative z-10 flex w-64 shrink-0 flex-col gap-6 border-r border-white/10 bg-white/[0.01] px-4 py-6">
-        <Link href="/" className="flex items-center gap-3 px-2">
+        <Link href="/perfil" title="Meu Perfil" className="flex items-center gap-3 px-2">
           <Image
             src="/logo.jpeg"
             alt="SEED-SE"
