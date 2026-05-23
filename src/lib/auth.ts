@@ -2,6 +2,8 @@ export type Role = "ADMIN" | "PROFESSOR" | "ALUNO";
 
 export const TOKEN_COOKIE = "seed_token";
 export const ROLE_COOKIE = "seed_role";
+export const PWD_CHANGE_COOKIE = "seed_pwd_change";
+export const TROCA_SENHA_PATH = "/troca-senha-obrigatoria";
 
 export type JwtPayload = {
   sub: string;

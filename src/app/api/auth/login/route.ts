@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { decodeJwt, ROLE_COOKIE, TOKEN_COOKIE } from "@/lib/auth";
+import {
+  PWD_CHANGE_COOKIE,
+  ROLE_COOKIE,
+  TOKEN_COOKIE,
+  decodeJwt,
+} from "@/lib/auth";
 import { API_URL } from "@/lib/api";
 
 export async function POST(request: Request) {
@@ -29,6 +34,8 @@ export async function POST(request: Request) {
   }
 
   const token = data?.access_token as string | undefined;
+  const requerTrocaSenha = Boolean(data?.requer_troca_senha);
+
   if (!token) {
     return NextResponse.json(
       { detail: "Token inválido" },
@@ -46,11 +53,12 @@ export async function POST(request: Request) {
 
   const jar = await cookies();
   const expires = new Date(payload.exp * 1000);
+  const isProd = process.env.NODE_ENV === "production";
 
   jar.set(TOKEN_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isProd,
     path: "/",
     expires,
   });
@@ -58,10 +66,25 @@ export async function POST(request: Request) {
   jar.set(ROLE_COOKIE, payload.role, {
     httpOnly: false,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isProd,
     path: "/",
     expires,
   });
 
-  return NextResponse.json({ role: payload.role });
+  if (requerTrocaSenha) {
+    jar.set(PWD_CHANGE_COOKIE, "true", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: isProd,
+      path: "/",
+      expires,
+    });
+  } else {
+    jar.delete(PWD_CHANGE_COOKIE);
+  }
+
+  return NextResponse.json({
+    role: payload.role,
+    requerTrocaSenha,
+  });
 }

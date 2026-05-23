@@ -1,153 +1,173 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel, Tag } from "@/components/app-shell";
-import { Icon } from "@/components/icons";
+import { useToast } from "@/components/feedback/toast-provider";
+import { getSimulados } from "@/lib/simulados";
+import { isApiClientError } from "@/lib/api-client";
+import type { Simulado } from "@/lib/types";
 
-const provas = [
-  {
-    id: "ag-4201",
-    nome: "Diagnóstica — Matemática 1º bim",
-    turma: "3ºA — EM Regular",
-    data: "22/04/2026",
-    hora: "09:00",
-    duracao: 120,
-    questoes: { facil: 4, medio: 8, dificil: 3 },
-    status: "agendada",
-  },
-  {
-    id: "ag-4198",
-    nome: "Simulado SAEB — Port.",
-    turma: "9ºB — EF Regular",
-    data: "20/04/2026",
-    hora: "10:00",
-    duracao: 90,
-    questoes: { facil: 5, medio: 10, dificil: 2 },
-    status: "em-andamento",
-  },
-  {
-    id: "ag-4180",
-    nome: "Prova Bimestral — Ciências",
-    turma: "2º Supletivo",
-    data: "15/04/2026",
-    hora: "14:00",
-    duracao: 100,
-    questoes: { facil: 3, medio: 7, dificil: 4 },
-    status: "encerrada",
-  },
-];
+export default function ProvasPage() {
+  const toast = useToast();
+  const [simulados, setSimulados] = React.useState<Simulado[]>([]);
+  const [carregando, setCarregando] = React.useState(true);
+  const [erro, setErro] = React.useState<string | null>(null);
 
-const statusTag = (s: string) =>
-  s === "em-andamento"
-    ? { tone: "emerald" as const, label: "Em andamento" }
-    : s === "encerrada"
-      ? { tone: "slate" as const, label: "Encerrada" }
-      : { tone: "amber" as const, label: "Agendada" };
+  const carregar = React.useCallback(async () => {
+    setCarregando(true);
+    setErro(null);
+    try {
+      const lista = await getSimulados();
+      setSimulados(lista);
+    } catch (err) {
+      const detail = isApiClientError(err)
+        ? err.detail
+        : "Erro ao carregar etapas";
+      setErro(detail);
+      toast.push({
+        variant: "destructive",
+        title: "Falha ao carregar etapas",
+        description: detail,
+      });
+    } finally {
+      setCarregando(false);
+    }
+  }, [toast]);
 
-export default function ProvasAgendamento() {
+  React.useEffect(() => {
+    void carregar();
+  }, [carregar]);
+
   return (
     <>
       <PageHeader
-        title="Agendamento de provas"
-        description="Defina turma, data, duração e mix de dificuldade — o sistema sorteia as questões do banco"
+        title="Etapas"
+        description="Avaliações publicadas para os alunos da rede"
         action={
-          <Button className="h-9 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-[#0c1a33] hover:bg-amber-300">
-            <Icon.Plus />
-            Novo simulado
-          </Button>
+          <Link href="/admin/provas/nova">
+            <Button className="bg-amber-400 text-[#0c1a33] hover:bg-amber-300">
+              Nova etapa
+            </Button>
+          </Link>
         }
       />
 
-      <section className="grid grid-cols-3 gap-4 px-8 py-6">
+      <section className="px-8 py-6">
         <Panel>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/40">Agendadas</p>
-          <p className="pt-2 text-2xl font-semibold text-amber-300 tabular-nums">12</p>
-          <p className="pt-1 text-xs text-white/40">Próximos 30 dias</p>
-        </Panel>
-        <Panel>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/40">Em andamento</p>
-          <p className="pt-2 text-2xl font-semibold text-emerald-300 tabular-nums">3</p>
-          <p className="pt-1 text-xs text-white/40">Com alunos respondendo</p>
-        </Panel>
-        <Panel>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/40">Encerradas este mês</p>
-          <p className="pt-2 text-2xl font-semibold text-white tabular-nums">48</p>
-          <p className="pt-1 text-xs text-white/40">Gabaritos liberados</p>
-        </Panel>
-      </section>
+          {carregando && (
+            <div className="flex h-48 items-center justify-center text-sm text-white/40">
+              Carregando etapas...
+            </div>
+          )}
 
-      <section className="px-8 pb-8">
-        <Panel>
-          <div className="flex items-center justify-between pb-4">
-            <h2 className="text-sm font-semibold text-white">Simulados</h2>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-1.5">
-                <Icon.Search className="size-3 text-white/40" />
-                <input
-                  placeholder="Buscar por nome ou turma"
-                  className="w-56 bg-transparent text-xs text-white placeholder:text-white/30 focus:outline-none"
-                />
-              </div>
-              <Button variant="outline" className="h-8 rounded-lg border-white/10 bg-white/[0.02] px-3 text-xs text-white/70 hover:bg-white/[0.05]">
-                <Icon.Filter />
-                Filtrar
+          {!carregando && erro && (
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <p className="text-sm text-rose-300">{erro}</p>
+              <Button
+                variant="ghost"
+                onClick={() => void carregar()}
+                className="text-white/70 hover:bg-white/[0.05] hover:text-white"
+              >
+                Tentar novamente
               </Button>
             </div>
-          </div>
+          )}
 
-          <div className="overflow-hidden rounded-lg border border-white/10">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.03] text-[11px] uppercase tracking-[0.1em] text-white/40">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Simulado</th>
-                  <th className="px-4 py-3 font-medium">Turma</th>
-                  <th className="px-4 py-3 font-medium">Data / hora</th>
-                  <th className="px-4 py-3 font-medium">Duração</th>
-                  <th className="px-4 py-3 font-medium">Mix F/M/D</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {provas.map((p) => {
-                  const t = statusTag(p.status);
-                  return (
-                    <tr key={p.id} className="text-white/80">
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-white">{p.nome}</span>
-                          <span className="font-mono text-[10px] text-white/40">{p.id}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-white/70">{p.turma}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-white/60">
-                        {p.data} · {p.hora}
-                      </td>
-                      <td className="px-4 py-3 text-white/70">{p.duracao} min</td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        <span className="text-emerald-300">{p.questoes.facil}</span>
-                        <span className="text-white/30"> / </span>
-                        <span className="text-amber-300">{p.questoes.medio}</span>
-                        <span className="text-white/30"> / </span>
-                        <span className="text-rose-300">{p.questoes.dificil}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Tag tone={t.tone}>{t.label}</Tag>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          className="h-7 rounded-lg px-2.5 text-xs text-white/60 hover:bg-white/[0.05] hover:text-white"
-                        >
-                          Detalhes
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {!carregando && !erro && simulados.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <p className="text-sm font-medium text-white/70">
+                Nenhuma etapa publicada ainda
+              </p>
+              <p className="max-w-md text-center text-xs text-white/40">
+                Publique a primeira avaliação para que os alunos possam
+                realizá-la durante a janela definida.
+              </p>
+              <Link href="/admin/provas/nova" className="mt-2">
+                <Button className="bg-amber-400 text-[#0c1a33] hover:bg-amber-300">
+                  Nova etapa
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {!carregando && !erro && simulados.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-left">
+                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+                      Etapa
+                    </th>
+                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+                      Componente
+                    </th>
+                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+                      Janela
+                    </th>
+                    <th className="px-4 py-3 text-right font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+                      Vagas
+                    </th>
+                    <th className="px-4 py-3 text-right font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {simulados.map((s) => (
+                    <LinhaSimulado key={s.id} simulado={s} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Panel>
       </section>
     </>
   );
+}
+
+function LinhaSimulado({ simulado }: { simulado: Simulado }) {
+  const inicio = new Date(simulado.janelaInicio);
+  const fim = new Date(simulado.janelaFim);
+  const janela = `${formatarData(inicio)} → ${formatarData(fim)}`;
+
+  return (
+    <tr className="border-b border-white/[0.05] transition-colors hover:bg-white/[0.02]">
+      <td className="px-4 py-3">
+        <div className="flex flex-col">
+          <span className="font-medium text-white">{simulado.titulo}</span>
+          <span className="mt-0.5 flex items-center gap-3 text-[11px] text-white/40">
+            <span>{simulado.duracaoMinutos} min</span>
+            <span>{simulado.totalQuestoes} questões</span>
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-white/70">
+        <div className="flex flex-col">
+          <span>{simulado.componente.nome}</span>
+          <span className="text-[11px] text-white/40">
+            {simulado.componente.modalidade.nome}
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-xs text-white/70">{janela}</td>
+      <td className="px-4 py-3 text-right tabular-nums text-white/70">
+        {simulado.vagas}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Tag>{simulado.status}</Tag>
+      </td>
+    </tr>
+  );
+}
+
+function formatarData(d: Date): string {
+  const dia = String(d.getDate()).padStart(2, "0");
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const hora = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${dia}/${mes} ${hora}:${min}`;
 }

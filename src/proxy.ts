@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ROLE_COOKIE, TOKEN_COOKIE, type Role } from "@/lib/auth";
+import {
+  PWD_CHANGE_COOKIE,
+  ROLE_COOKIE,
+  TOKEN_COOKIE,
+  TROCA_SENHA_PATH,
+  type Role,
+} from "@/lib/auth";
 
 const PUBLIC_PATHS = ["/login", "/api/auth/login"];
 
@@ -18,11 +24,33 @@ export function proxy(request: NextRequest) {
 
   const token = request.cookies.get(TOKEN_COOKIE)?.value;
   const role = request.cookies.get(ROLE_COOKIE)?.value as Role | undefined;
+  const requerTrocaSenha =
+    request.cookies.get(PWD_CHANGE_COOKIE)?.value === "true";
 
   if (!token || !role) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     if (pathname !== "/") url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  const ehRotaTrocaSenha =
+    pathname === TROCA_SENHA_PATH ||
+    pathname.startsWith(`${TROCA_SENHA_PATH}/`) ||
+    pathname === "/api/auth/trocar-senha" ||
+    pathname === "/api/auth/logout";
+
+  if (requerTrocaSenha && !ehRotaTrocaSenha) {
+    const url = request.nextUrl.clone();
+    url.pathname = TROCA_SENHA_PATH;
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  if (!requerTrocaSenha && pathname === TROCA_SENHA_PATH) {
+    const url = request.nextUrl.clone();
+    url.pathname = ROLE_PREFIXES[role];
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
