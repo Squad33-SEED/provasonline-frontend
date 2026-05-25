@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { iniciarProva } from "@/lib/aluno"
+import { iniciarProva, ErroProva409 } from "@/lib/aluno"
 
 export default function IniciarProvaPage() {
   const { id } = useParams<{ id: string }>()
@@ -19,8 +19,16 @@ export default function IniciarProvaPage() {
           `/aluno/prova/${id}/responder?resultadoId=${dados.resultadoId}&expiraEm=${encodeURIComponent(dados.expiraEm)}`
         )
       })
-      .catch(() => {
-        setErro("Não foi possível iniciar a prova. Verifique se a etapa ainda está dentro da janela.")
+      .catch((err: unknown) => {
+        if (err instanceof ErroProva409) {
+          router.push(`/aluno/prova/${id}/resultado/${err.resultadoId}`)
+          return
+        }
+        setErro(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível iniciar a prova. Verifique se a etapa ainda está dentro da janela."
+        )
         setIniciando(false)
       })
   }

@@ -21,6 +21,65 @@ function formatarHora(iso: string): string {
   });
 }
 
+type TagInfo = { tone: "emerald" | "amber" | "rose"; label: string }
+
+function resolverTag(e: EtapaDisponivel): TagInfo {
+  if (e.statusResultado === "FINALIZADO") return { tone: "emerald", label: "Realizada ✓" }
+  if (e.statusResultado === "EXPIRADO") return { tone: "rose", label: "Expirada" }
+  if (e.statusResultado === "EM_ANDAMENTO") return { tone: "amber", label: "Em andamento" }
+  if (e.ativa) return { tone: "emerald", label: "Pronta para iniciar" }
+  return { tone: "amber", label: "Agendada" }
+}
+
+function AcaoEtapa({ etapa, onNavegar }: { etapa: EtapaDisponivel; onNavegar: (href: string) => void }) {
+  if (etapa.statusResultado === "FINALIZADO") {
+    return (
+      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-emerald-400/70">
+        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        Concluída
+      </span>
+    )
+  }
+
+  if (etapa.statusResultado === "EXPIRADO") {
+    return (
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/30">
+        Tentativa expirada
+      </span>
+    )
+  }
+
+  if (etapa.statusResultado === "EM_ANDAMENTO") {
+    return (
+      <Button
+        onClick={() => onNavegar(`/aluno/prova/${etapa.id}/iniciar`)}
+        className="h-8 rounded-lg bg-amber-400 px-4 text-xs font-semibold text-[#0c1a33] hover:bg-amber-300"
+      >
+        Continuar
+      </Button>
+    )
+  }
+
+  if (etapa.ativa) {
+    return (
+      <Button
+        onClick={() => onNavegar(`/aluno/prova/${etapa.id}/iniciar`)}
+        className="h-8 rounded-lg bg-amber-400 px-4 text-xs font-semibold text-[#0c1a33] hover:bg-amber-300"
+      >
+        Iniciar prova
+      </Button>
+    )
+  }
+
+  return (
+    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/30">
+      Disponível em {formatarData(etapa.janelaInicio)}
+    </span>
+  )
+}
+
 export default function ProvasAluno() {
   const router = useRouter();
   const [etapas, setEtapas] = useState<EtapaDisponivel[]>([]);
@@ -64,68 +123,58 @@ export default function ProvasAluno() {
 
         {!carregando && !erro && etapas.length > 0 && (
           <div className="grid grid-cols-2 gap-4">
-            {etapas.map((e) => (
-              <Panel key={e.id}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex flex-col gap-1">
-                    <Tag tone={e.ativa ? "emerald" : "amber"}>
-                      {e.ativa ? "Pronta para iniciar" : "Agendada"}
-                    </Tag>
-                    <h3 className="pt-2 text-base font-semibold text-white">
-                      {e.titulo}
-                    </h3>
-                    <p className="text-xs text-white/50">
-                      {e.componente.nome} · {e.componente.modalidade}
-                    </p>
+            {etapas.map((e) => {
+              const tag = resolverTag(e)
+              return (
+                <Panel key={e.id}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-1">
+                      <Tag tone={tag.tone}>{tag.label}</Tag>
+                      <h3 className="pt-2 text-base font-semibold text-white">
+                        {e.titulo}
+                      </h3>
+                      <p className="text-xs text-white/50">
+                        {e.componente.nome} · {e.componente.modalidade}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">
-                      Início
-                    </span>
-                    <span className="pt-1 font-mono text-xs text-white/70">
-                      {formatarData(e.janelaInicio)}
-                    </span>
-                    <span className="font-mono text-xs text-white/40">
-                      {formatarHora(e.janelaInicio)}
-                    </span>
+                  <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">
+                        Início
+                      </span>
+                      <span className="pt-1 font-mono text-xs text-white/70">
+                        {formatarData(e.janelaInicio)}
+                      </span>
+                      <span className="font-mono text-xs text-white/40">
+                        {formatarHora(e.janelaInicio)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">
+                        Duração
+                      </span>
+                      <span className="pt-1 font-mono text-xs text-white/70">
+                        {e.duracaoMinutos} min
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">
+                        Questões
+                      </span>
+                      <span className="pt-1 font-mono text-xs text-white/70">
+                        {e.totalQuestoes}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">
-                      Duração
-                    </span>
-                    <span className="pt-1 font-mono text-xs text-white/70">
-                      {e.duracaoMinutos} min
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">
-                      Questões
-                    </span>
-                    <span className="pt-1 font-mono text-xs text-white/70">
-                      {e.totalQuestoes}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="mt-4 flex items-center justify-end">
-                  {e.ativa ? (
-                    <Button
-                      onClick={() => router.push(`/aluno/prova/${e.id}/iniciar`)}
-                      className="h-8 rounded-lg bg-amber-400 px-4 text-xs font-semibold text-[#0c1a33] hover:bg-amber-300"
-                    >
-                      Iniciar prova
-                    </Button>
-                  ) : (
-                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/30">
-                      Disponível em {formatarData(e.janelaInicio)}
-                    </span>
-                  )}
-                </div>
-              </Panel>
-            ))}
+                  <div className="mt-4 flex items-center justify-end">
+                    <AcaoEtapa etapa={e} onNavegar={router.push} />
+                  </div>
+                </Panel>
+              )
+            })}
           </div>
         )}
       </section>

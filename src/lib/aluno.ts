@@ -15,6 +15,21 @@ export interface EtapaDisponivel {
   janelaInicio: string
   janelaFim: string
   ativa: boolean
+  jaIniciada: boolean
+  statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO" | null
+  resultadoId: string | null
+}
+
+export class ErroProva409 extends Error {
+  resultadoId: string
+  statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
+
+  constructor(resultadoId: string, statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO") {
+    super("Etapa já iniciada")
+    this.name = "ErroProva409"
+    this.resultadoId = resultadoId
+    this.statusResultado = statusResultado
+  }
 }
 
 export interface AlternativaParaAluno {
@@ -85,7 +100,11 @@ export async function iniciarProva(simuladoId: string): Promise<IniciarProvaResp
   const res = await fetch(`/api/aluno/iniciar-prova/${simuladoId}`, { method: "POST" })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.detail ?? "Erro ao iniciar prova")
+    if (res.status === 409 && body.detail?.resultadoId) {
+      throw new ErroProva409(body.detail.resultadoId, body.detail.statusResultado)
+    }
+    const mensagem = typeof body.detail === "string" ? body.detail : (body.detail?.mensagem ?? "Erro ao iniciar prova")
+    throw new Error(mensagem)
   }
   return res.json()
 }
