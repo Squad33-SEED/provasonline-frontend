@@ -22,6 +22,9 @@ export default function AlunosPage() {
   const [erroCarga, setErroCarga] = React.useState<string | null>(null);
   const [dialogAberto, setDialogAberto] = React.useState(false);
 
+  const [modalImportarAberto, setModalImportarAberto] = React.useState(false);
+  const [arquivoCsv, setArquivoCsv] = React.useState<File | null>(null);
+
   React.useEffect(() => {
     const id = setTimeout(() => setBuscaAplicada(busca.trim()), 350);
     return () => clearTimeout(id);
@@ -60,6 +63,68 @@ export default function AlunosPage() {
     void carregarDados();
   }
 
+  function fecharModalImportar() {
+    setArquivoCsv(null);
+    setModalImportarAberto(false);
+  }
+
+  function aoSelecionarArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+
+    if (!arquivo) {
+      setArquivoCsv(null);
+      return;
+    }
+
+    if (!arquivo.name.toLowerCase().endsWith(".csv")) {
+      setArquivoCsv(null);
+      toast.push({
+        variant: "destructive",
+        title: "Arquivo inválido",
+        description: "Selecione um arquivo no formato .csv.",
+      });
+      return;
+    }
+
+    setArquivoCsv(arquivo);
+  }
+
+  async function enviarPlanilha() {
+  if (!arquivoCsv) return;
+
+  const formData = new FormData();
+  formData.append("arquivo", arquivoCsv);
+
+  try {
+    const response = await fetch("/api/alunos/importar", {
+      method: "POST",
+      body: formData,
+      });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Erro ao enviar planilha");
+    }
+
+    toast.push({
+  title: "CSV enviado com sucesso",
+  description: data.mensagem || "Arquivo recebido pelo servidor.",
+});
+
+    fecharModalImportar();
+
+    await carregarDados();
+  } catch (err) {
+    toast.push({
+      variant: "destructive",
+      title: "Falha ao enviar CSV",
+      description:
+        err instanceof Error ? err.message : "Erro ao enviar planilha",
+    });
+  }
+}
+
   function formatarData(iso: string): string {
     try {
       const d = new Date(iso);
@@ -75,14 +140,24 @@ export default function AlunosPage() {
         title="Alunos"
         description="Cadastro individual de alunos com vínculo opcional de turma"
         action={
-          <Button
-            onClick={() => setDialogAberto(true)}
-            disabled={carregando}
-            className="h-9 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-[#0c1a33] hover:bg-amber-300"
-          >
-            <Icon.Plus />
-            Novo aluno
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setModalImportarAberto(true)}
+              disabled={carregando}
+              className="h-9 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white hover:bg-white/[0.08]"
+            >
+              Importar CSV
+            </Button>
+
+            <Button
+              onClick={() => setDialogAberto(true)}
+              disabled={carregando}
+              className="h-9 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-[#0c1a33] hover:bg-amber-300"
+            >
+              <Icon.Plus />
+              Novo aluno
+            </Button>
+          </div>
         }
       />
 
@@ -168,6 +243,63 @@ export default function AlunosPage() {
           </div>
         </Panel>
       </section>
+
+      {modalImportarAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0c1a33] p-6 shadow-xl">
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold text-white">
+                Importar alunos via CSV
+              </h2>
+              <p className="mt-1 text-sm text-white/50">
+                Envie um arquivo .csv com as colunas: nome, email, cpf,
+                data_nascimento, turma_id.
+              </p>
+            </div>
+
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/20 bg-white/[0.03] px-4 py-8 text-center hover:bg-white/[0.05]">
+              <span className="text-sm font-medium text-white">
+                Clique para selecionar a planilha
+              </span>
+              <span className="mt-1 text-xs text-white/40">
+                Apenas arquivos .csv
+              </span>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={aoSelecionarArquivo}
+                className="hidden"
+              />
+            </label>
+
+            {arquivoCsv && (
+              <p className="mt-3 rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-white/70">
+                Arquivo selecionado:{" "}
+                <span className="font-medium text-white">{arquivoCsv.name}</span>
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                type="button"
+                onClick={fecharModalImportar}
+                className="h-9 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white hover:bg-white/[0.08]"
+              >
+                Cancelar
+              </Button>
+
+              <Button
+                type="button"
+                onClick={enviarPlanilha}
+                disabled={!arquivoCsv}
+                className="h-9 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-[#0c1a33] hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Enviar Planilha
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <DialogNovoAluno
         open={dialogAberto}
