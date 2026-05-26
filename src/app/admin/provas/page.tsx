@@ -105,6 +105,9 @@ export default function ProvasPage() {
                       Componente
                     </th>
                     <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+                      Turmas
+                    </th>
+                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
                       Janela
                     </th>
                     <th className="px-4 py-3 text-right font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
@@ -113,6 +116,7 @@ export default function ProvasPage() {
                     <th className="px-4 py-3 text-right font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
                       Status
                     </th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody>
@@ -153,12 +157,38 @@ function LinhaSimulado({ simulado }: { simulado: Simulado }) {
           </span>
         </div>
       </td>
+      <td className="px-4 py-3">
+        {simulado.turmas.length === 0 ? (
+          <span className="text-[11px] text-white/30 italic">Todas as turmas</span>
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {simulado.turmas.slice(0, 2).map((t) => (
+              <span key={t.id} className="text-[11px] text-white/60">
+                {t.nome}
+                <span className="text-white/30"> · {t.escolaNome}</span>
+              </span>
+            ))}
+            {simulado.turmas.length > 2 && (
+              <span className="text-[11px] text-amber-400/70">
+                +{simulado.turmas.length - 2} turma{simulado.turmas.length - 2 > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+        )}
+      </td>
       <td className="px-4 py-3 text-xs text-white/70">{janela}</td>
       <td className="px-4 py-3 text-right tabular-nums text-white/70">
         {simulado.vagas}
       </td>
       <td className="px-4 py-3 text-right">
         <Tag>{simulado.status}</Tag>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Link href={`/admin/provas/${simulado.id}`}>
+          <button className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] text-white/50 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white/80">
+            Detalhes
+          </button>
+        </Link>
       </td>
     </tr>
   );
