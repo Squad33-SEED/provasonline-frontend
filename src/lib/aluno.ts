@@ -15,21 +15,6 @@ export interface EtapaDisponivel {
   janelaInicio: string
   janelaFim: string
   ativa: boolean
-  jaIniciada: boolean
-  statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO" | null
-  resultadoId: string | null
-}
-
-export class ErroProva409 extends Error {
-  resultadoId: string
-  statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
-
-  constructor(resultadoId: string, statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO") {
-    super("Etapa já iniciada")
-    this.name = "ErroProva409"
-    this.resultadoId = resultadoId
-    this.statusResultado = statusResultado
-  }
 }
 
 export interface AlternativaParaAluno {
@@ -65,11 +50,12 @@ export interface AutoSaveResponse {
   salvoEm: string
 }
 
-export interface GabaritoItem {
+export interface GabaritoItemDetalhado {
   ordem: number
   questaoId: string
-  respostaAluno: string | null
-  respostaCorreta: string
+  enunciado: string
+  alternativaMarcada: string | null
+  alternativaCorreta: string
   correta: boolean
 }
 
@@ -87,7 +73,35 @@ export interface ResultadoResponse {
   statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
   finalizadoEm: string
   simulado: SimuladoResumoResultado
-  gabarito: GabaritoItem[]
+  gabaritoDisponivel: boolean
+  gabaritoDisponivelEm: string
+  gabarito: GabaritoItemDetalhado[] | null
+}
+
+export interface HistoricoItem {
+  resultadoId: string
+  simuladoId: string
+  titulo: string
+  componente: string
+  pontuacao: number | null
+  acertos: number | null
+  total: number
+  statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
+  finalizadoEm: string | null
+  gabaritoDisponivel: boolean
+  gabaritoDisponivelEm: string
+}
+
+export class ErroProva409 extends Error {
+  resultadoId: string
+  statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
+
+  constructor(resultadoId: string, statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO") {
+    super("Etapa já iniciada")
+    this.name = "ErroProva409"
+    this.resultadoId = resultadoId
+    this.statusResultado = statusResultado
+  }
 }
 
 export async function getEtapasDisponiveis(): Promise<EtapaDisponivel[]> {
@@ -100,11 +114,7 @@ export async function iniciarProva(simuladoId: string): Promise<IniciarProvaResp
   const res = await fetch(`/api/aluno/iniciar-prova/${simuladoId}`, { method: "POST" })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    if (res.status === 409 && body.detail?.resultadoId) {
-      throw new ErroProva409(body.detail.resultadoId, body.detail.statusResultado)
-    }
-    const mensagem = typeof body.detail === "string" ? body.detail : (body.detail?.mensagem ?? "Erro ao iniciar prova")
-    throw new Error(mensagem)
+    throw new Error(body.detail ?? "Erro ao iniciar prova")
   }
   return res.json()
 }
@@ -134,5 +144,11 @@ export async function submeterProva(resultadoId: string): Promise<ResultadoRespo
 export async function getResultado(resultadoId: string): Promise<ResultadoResponse> {
   const res = await fetch(`/api/aluno/resultado/${resultadoId}`, { cache: "no-store" })
   if (!res.ok) throw new Error("Erro ao buscar resultado")
+  return res.json()
+}
+
+export async function getHistorico(): Promise<HistoricoItem[]> {
+  const res = await fetch("/api/aluno/historico", { cache: "no-store" })
+  if (!res.ok) throw new Error("Erro ao buscar histórico")
   return res.json()
 }
