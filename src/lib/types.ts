@@ -8,6 +8,12 @@ export type ModalidadeResumo = {
   nome: string;
 };
 
+export type TurmaResumoSimples = {
+  id: string;
+  nome: string;
+  escolaNome: string;
+};
+
 export type Turma = {
   id: string;
   nome: string;
@@ -72,6 +78,7 @@ export type Simulado = {
   janelaFim: string;
   status: string;
   criadoEm: string;
+  turmas: TurmaResumoSimples[];
 };
 
 export type SimuladoCreatePayload = {
@@ -85,4 +92,5 @@ export type SimuladoCreatePayload = {
   duracaoMinutos: number;
   janelaInicio: string;
   janelaFim: string;
+  turmaIds: string[];
 };

@@ -4,6 +4,7 @@ import type {
   Disponibilidade,
   Simulado,
   SimuladoCreatePayload,
+  Turma,
 } from "@/lib/types";
 
 export async function getComponentes(): Promise<ComponenteCatalogo[]> {
@@ -20,6 +21,10 @@ export async function getDisponibilidade(
 
 export async function getSimulados(): Promise<Simulado[]> {
   return apiGet<Simulado[]>("/api/simulados");
+}
+
+export async function getTurmas(): Promise<Turma[]> {
+  return apiGet<Turma[]>("/api/turmas");
 }
 
 export async function criarSimulado(

@@ -8,6 +8,7 @@ export type PassoIdentificacaoState = {
   descricao: string;
   componenteId: string;
   componenteNome: string;
+  turmaIds: string[];
 };
 
 export type PassoJanelaState = {
@@ -40,6 +41,7 @@ export type WizardState = {
 export type WizardAction =
   | { type: "ATUALIZAR_PASSO_1"; campo: keyof PassoIdentificacaoState; valor: string }
   | { type: "SELECIONAR_COMPONENTE"; id: string; nome: string }
+  | { type: "TOGGLE_TURMA"; turmaId: string }
   | { type: "ATUALIZAR_PASSO_2"; campo: keyof PassoJanelaState; valor: string }
   | { type: "ATUALIZAR_PASSO_3"; campo: keyof PassoComposicaoState; valor: number }
   | { type: "AVANCAR" }
@@ -58,6 +60,7 @@ const ESTADO_INICIAL: WizardState = {
     descricao: "",
     componenteId: "",
     componenteNome: "",
+    turmaIds: [],
   },
   passo2: {
     vagas: "100",
@@ -98,6 +101,20 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
         disponibilidade: null,
         passo3: { qtdFacil: 0, qtdMedio: 0, qtdDificil: 0 },
       };
+
+    case "TOGGLE_TURMA": {
+      const ids = state.passo1.turmaIds;
+      const jaExiste = ids.includes(action.turmaId);
+      return {
+        ...state,
+        passo1: {
+          ...state.passo1,
+          turmaIds: jaExiste
+            ? ids.filter((id) => id !== action.turmaId)
+            : [...ids, action.turmaId],
+        },
+      };
+    }
 
     case "ATUALIZAR_PASSO_2":
       return {
@@ -224,5 +241,6 @@ export function montarPayloadSubmit(state: WizardState) {
     duracaoMinutos: parseInt(state.passo2.duracaoMinutos, 10),
     janelaInicio: inicio.toISOString(),
     janelaFim: fim.toISOString(),
+    turmaIds: state.passo1.turmaIds,
   };
 }
