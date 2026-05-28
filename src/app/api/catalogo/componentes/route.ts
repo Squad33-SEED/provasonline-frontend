@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
 import { API_URL } from "@/lib/api";
 
 export async function GET() {

@@ -27,3 +27,6 @@ export async function criarSimulado(
 ): Promise<Simulado> {
   return apiPost<Simulado>("/api/simulados", payload);
 }
+export async function iniciarSimulado(simuladoId: string): Promise<any[]> {
+  return apiGet<any[]>(`/api/simulados/${simuladoId}/questoes`);
+}
