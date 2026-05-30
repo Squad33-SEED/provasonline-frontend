@@ -15,6 +15,7 @@ export interface EtapaDisponivel {
   janelaInicio: string
   janelaFim: string
   ativa: boolean
+  statusResultado?: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
 }
 
 export interface AlternativaParaAluno {
