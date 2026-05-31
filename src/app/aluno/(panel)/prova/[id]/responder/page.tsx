@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { autoSaveRespostas, iniciarProva, submeterProva } from "@/lib/aluno"
 import type { QuestaoParaAluno } from "@/lib/aluno"
+import { useModoSeguro } from "@/lib/use-modo-seguro"
 
 const AUTO_SAVE_INTERVAL_MS = 30_000
 
@@ -27,6 +28,16 @@ export default function ResponderProvaPage() {
 
   const respostasRef = useRef<Record<string, string>>({})
 
+  const provaAtiva = !carregando && !submetendo && questoes.length > 0
+  const {
+    totalViolacoes,
+    emTelaCheia,
+    alertaVisivel,
+    mensagemAlerta,
+    entrarTelaCheia,
+    dispensarAlerta,
+  } = useModoSeguro({ resultadoId, ativo: provaAtiva })
+
   useEffect(() => {
     respostasRef.current = respostas
   }, [respostas])
@@ -34,6 +45,9 @@ export default function ResponderProvaPage() {
   const executarSubmit = useCallback(async () => {
     if (submetendo) return
     setSubmetendo(true)
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {})
+    }
     await submeterProva(resultadoId)
       .then(() => router.replace(`/aluno/prova/${id}/resultado?resultadoId=${resultadoId}`))
       .catch(() => router.replace(`/aluno/prova/${id}/resultado?resultadoId=${resultadoId}`))
@@ -117,6 +131,12 @@ export default function ResponderProvaPage() {
           <span className="text-zinc-500 text-xs shrink-0">{totalRespondidas} respondidas</span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
+          {totalViolacoes > 0 && (
+            <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-red-950/60 text-red-400 border border-red-800" title="Ocorrências de segurança registradas">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v4"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              {totalViolacoes}
+            </span>
+          )}
           {salvando ? (
             <span className="text-xs text-zinc-500 flex items-center gap-1">
               <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -208,6 +228,44 @@ export default function ResponderProvaPage() {
           </div>
         </div>
       </main>
+
+      {provaAtiva && !emTelaCheia && (
+        <div className="fixed inset-0 z-[60] bg-zinc-950/95 backdrop-blur flex items-center justify-center px-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-amber-800/60 rounded-2xl p-6 shadow-2xl text-center">
+            <div className="w-12 h-12 rounded-full bg-amber-950/60 border border-amber-800 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg>
+            </div>
+            <h3 className="text-white font-semibold text-lg mb-2">Modo seguro de avaliação</h3>
+            <p className="text-zinc-400 text-sm mb-5 leading-relaxed">
+              Esta é uma prova oficial. Para continuar, ative o modo tela cheia. Sair da tela cheia, trocar de aba ou copiar conteúdo será registrado e o professor será notificado.
+            </p>
+            <button
+              onClick={entrarTelaCheia}
+              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-sm transition-colors"
+            >
+              Entrar em tela cheia e iniciar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {alertaVisivel && (
+        <div className="fixed inset-0 z-[55] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-sm bg-zinc-900 border border-red-800 rounded-2xl p-6 shadow-2xl text-center">
+            <div className="w-12 h-12 rounded-full bg-red-950/60 border border-red-800 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h3 className="text-white font-semibold mb-2">Ação registrada</h3>
+            <p className="text-zinc-400 text-sm mb-5 leading-relaxed">{mensagemAlerta}</p>
+            <button
+              onClick={() => { dispensarAlerta(); if (!emTelaCheia) void entrarTelaCheia() }}
+              className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-sm transition-colors"
+            >
+              Entendi, voltar à prova
+            </button>
+          </div>
+        </div>
+      )}
 
       {confirmandoFinalizar && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4">

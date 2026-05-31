@@ -153,3 +153,25 @@ export async function getHistorico(): Promise<HistoricoItem[]> {
   if (!res.ok) throw new Error("Erro ao buscar histórico")
   return res.json()
 }
+
+export type TipoViolacao =
+  | "saiu_tela_cheia"
+  | "trocou_aba"
+  | "perdeu_foco"
+  | "copiar_colar"
+  | "menu_contexto"
+  | "atalho_proibido"
+
+export async function registrarViolacao(
+  resultadoId: string,
+  tipo: TipoViolacao,
+  detalhe?: string,
+): Promise<{ registrada: boolean; totalViolacoes: number }> {
+  const res = await fetch(`/api/aluno/violacao/${resultadoId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tipo, detalhe }),
+  })
+  if (!res.ok) return { registrada: false, totalViolacoes: 0 }
+  return res.json()
+}
