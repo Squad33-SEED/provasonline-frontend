@@ -9,6 +9,7 @@ const nav: NavItem[] = [
   { href: "/admin/questoes", label: "Banco de questões", icon: "Questions" },
   { href: "/admin/niveis", label: "Níveis & Modalidades", icon: "Layers" },
   { href: "/admin/ips", label: "IPs autorizados", icon: "Shield" },
+  { href: "/admin/violacoes", label: "Violações", icon: "Alert" },
 ];
 
 export default function AdminLayout({
