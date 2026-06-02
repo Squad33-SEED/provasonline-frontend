@@ -74,9 +74,24 @@ export interface HistoricoSL {
   finalizadoEm: string | null
 }
 
+export interface DisciplinaSimulado {
+  nome: string
+  componenteIds: string[]
+  totalQuestoes: number
+  facil: number
+  medio: number
+  dificil: number
+}
+
 export async function getComponentesCatalogo(): Promise<ComponenteCatalogo[]> {
   const res = await fetch("/api/catalogo/componentes", { cache: "no-store" })
   if (!res.ok) throw new Error("Erro ao carregar componentes")
+  return res.json()
+}
+
+export async function getDisciplinas(): Promise<DisciplinaSimulado[]> {
+  const res = await fetch("/api/simulado-livre/disciplinas", { cache: "no-store" })
+  if (!res.ok) throw new Error("Erro ao carregar disciplinas")
   return res.json()
 }
 

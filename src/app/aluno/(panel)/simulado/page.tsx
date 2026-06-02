@@ -4,15 +4,14 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { PageHeader, Panel, Tag } from "@/components/app-shell"
+import { PageHeader, Panel } from "@/components/app-shell"
 import { Icon } from "@/components/icons"
 import {
   getBancoQuestoes,
-  getComponentesCatalogo,
-  getDisponibilidade,
+  getDisciplinas,
   selecionarSimulado,
   sortearSimulado,
-  type ComponenteCatalogo,
+  type DisciplinaSimulado,
   type QuestaoBanco,
 } from "@/lib/simulado-livre"
 
@@ -21,14 +20,13 @@ type Modo = "sortear" | "selecionar"
 export default function MontarSimuladoLivre() {
   const router = useRouter()
 
-  const [componentes, setComponentes] = useState<ComponenteCatalogo[]>([])
+  const [disciplinas, setDisciplinas] = useState<DisciplinaSimulado[]>([])
   const [selecionados, setSelecionados] = useState<string[]>([])
   const [modo, setModo] = useState<Modo>("sortear")
   const [duracao, setDuracao] = useState(45)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  const [disp, setDisp] = useState({ facil: 0, medio: 0, dificil: 0 })
   const [facil, setFacil] = useState(3)
   const [medio, setMedio] = useState(5)
   const [dificil, setDificil] = useState(2)
@@ -38,52 +36,44 @@ export default function MontarSimuladoLivre() {
   const [filtroDif, setFiltroDif] = useState<string>("")
 
   useEffect(() => {
-    getComponentesCatalogo()
-      .then((cs) => {
-        setComponentes(cs)
-        if (cs.length > 0) setSelecionados([cs[0].id])
+    getDisciplinas()
+      .then((ds) => {
+        setDisciplinas(ds)
+        if (ds.length > 0) setSelecionados([ds[0].nome])
       })
-      .catch(() => setErro("Não foi possível carregar os componentes"))
+      .catch(() => setErro("Não foi possível carregar as disciplinas"))
   }, [])
 
-  useEffect(() => {
-    if (selecionados.length === 0) {
-      setDisp({ facil: 0, medio: 0, dificil: 0 })
-      return
-    }
-    Promise.all(selecionados.map((id) => getDisponibilidade(id)))
-      .then((rs) =>
-        setDisp(
-          rs.reduce(
-            (acc, r) => ({
-              facil: acc.facil + (r.facil ?? 0),
-              medio: acc.medio + (r.medio ?? 0),
-              dificil: acc.dificil + (r.dificil ?? 0),
-            }),
-            { facil: 0, medio: 0, dificil: 0 },
-          ),
-        ),
+  const componenteIdsSelecionados = useMemo(
+    () =>
+      disciplinas
+        .filter((d) => selecionados.includes(d.nome))
+        .flatMap((d) => d.componenteIds),
+    [disciplinas, selecionados],
+  )
+
+  const disp = useMemo(() => {
+    return disciplinas
+      .filter((d) => selecionados.includes(d.nome))
+      .reduce(
+        (acc, d) => ({
+          facil: acc.facil + d.facil,
+          medio: acc.medio + d.medio,
+          dificil: acc.dificil + d.dificil,
+        }),
+        { facil: 0, medio: 0, dificil: 0 },
       )
-      .catch(() => {})
-  }, [selecionados])
+  }, [disciplinas, selecionados])
 
   useEffect(() => {
-    if (modo !== "selecionar" || selecionados.length === 0) return
-    Promise.all(
-      selecionados.map((id) =>
-        getBancoQuestoes(id, filtroDif ? { dificuldade: filtroDif } : undefined),
-      ),
+    if (modo !== "selecionar" || componenteIdsSelecionados.length === 0) return
+    getBancoQuestoes(
+      componenteIdsSelecionados.join(","),
+      filtroDif ? { dificuldade: filtroDif } : undefined,
     )
-      .then((listas) => setBanco(listas.flat()))
+      .then(setBanco)
       .catch(() => setBanco([]))
-  }, [modo, selecionados, filtroDif])
-
-  const assuntos = useMemo(() => {
-    const nomes = componentes
-      .filter((c) => selecionados.includes(c.id))
-      .flatMap((c) => c.assuntos.map((a) => a.nome))
-    return [...new Set(nomes)]
-  }, [componentes, selecionados])
+  }, [modo, componenteIdsSelecionados, filtroDif])
 
   const totalSorteio = facil + medio + dificil
   const avisos: string[] = []
@@ -91,13 +81,13 @@ export default function MontarSimuladoLivre() {
   if (medio > disp.medio) avisos.push(`Só há ${disp.medio} médias`)
   if (dificil > disp.dificil) avisos.push(`Só há ${disp.dificil} difíceis`)
 
-  function toggleComponente(id: string) {
+  function toggleComponente(nome: string) {
     setSelecionados((prev) =>
-      prev.includes(id)
+      prev.includes(nome)
         ? prev.length === 1
           ? prev
-          : prev.filter((x) => x !== id)
-        : [...prev, id],
+          : prev.filter((x) => x !== nome)
+        : [...prev, nome],
     )
   }
 
@@ -119,7 +109,7 @@ export default function MontarSimuladoLivre() {
       if (modo === "sortear") {
         if (totalSorteio === 0 || avisos.length > 0) return
         simulado = await sortearSimulado({
-          componenteIds: selecionados,
+          componenteIds: componenteIdsSelecionados,
           qtdFacil: facil,
           qtdMedio: medio,
           qtdDificil: dificil,
@@ -128,7 +118,7 @@ export default function MontarSimuladoLivre() {
       } else {
         if (marcadas.size === 0) return
         simulado = await selecionarSimulado({
-          componenteIds: selecionados,
+          componenteIds: componenteIdsSelecionados,
           questaoIds: [...marcadas],
           duracaoMinutos: duracao,
         })
@@ -156,37 +146,28 @@ export default function MontarSimuladoLivre() {
       <section className="grid grid-cols-3 gap-4 px-8 py-6">
         <div className="col-span-2 flex flex-col gap-4">
           <Panel>
-            <h3 className="pb-4 text-sm font-semibold text-white">Componentes curriculares</h3>
+            <h3 className="pb-4 text-sm font-semibold text-white">Disciplinas</h3>
             <div className="grid grid-cols-2 gap-2">
-              {componentes.map((c) => {
-                const ativo = selecionados.includes(c.id)
+              {disciplinas.map((d) => {
+                const ativo = selecionados.includes(d.nome)
                 return (
                   <button
-                    key={c.id}
-                    onClick={() => toggleComponente(c.id)}
+                    key={d.nome}
+                    onClick={() => toggleComponente(d.nome)}
                     className={
                       ativo
                         ? "flex items-center justify-between rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-200"
                         : "flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/70 hover:bg-white/[0.05] hover:text-white"
                     }
                   >
-                    <span>{c.nome}</span>
+                    <span>{d.nome}</span>
                     <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
-                      {c.assuntos.length} assuntos
+                      {d.totalQuestoes} questões
                     </span>
                   </button>
                 )
               })}
             </div>
-            {assuntos.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {assuntos.map((a) => (
-                  <Tag key={a} tone="blue">
-                    {a}
-                  </Tag>
-                ))}
-              </div>
-            )}
           </Panel>
 
           <Panel>
