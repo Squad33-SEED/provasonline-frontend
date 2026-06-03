@@ -32,3 +32,19 @@ export async function criarSimulado(
 ): Promise<Simulado> {
   return apiPost<Simulado>("/api/simulados", payload);
 }
+
+export interface QuestaoBanco {
+  id: string;
+  enunciado: string;
+  assunto: string;
+  dificuldade: "FACIL" | "MEDIO" | "DIFICIL";
+  componenteId: string;
+}
+
+export async function getBancoQuestoesAdmin(
+  componenteId: string,
+): Promise<QuestaoBanco[]> {
+  return apiGet<QuestaoBanco[]>(
+    `/api/simulados/banco?componenteId=${encodeURIComponent(componenteId)}`,
+  );
+}

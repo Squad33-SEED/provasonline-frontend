@@ -20,10 +20,15 @@ export type PassoJanelaState = {
   horaFim: string;
 };
 
+export type ModoComposicao = "SORTEIO" | "MANUAL";
+
 export type PassoComposicaoState = {
+  modo: ModoComposicao;
   qtdFacil: number;
   qtdMedio: number;
   qtdDificil: number;
+  questaoIds: string[];
+  embaralharAlternativas: boolean;
 };
 
 export type WizardState = {
@@ -43,7 +48,10 @@ export type WizardAction =
   | { type: "SELECIONAR_COMPONENTE"; id: string; nome: string }
   | { type: "TOGGLE_TURMA"; turmaId: string }
   | { type: "ATUALIZAR_PASSO_2"; campo: keyof PassoJanelaState; valor: string }
-  | { type: "ATUALIZAR_PASSO_3"; campo: keyof PassoComposicaoState; valor: number }
+  | { type: "ATUALIZAR_PASSO_3"; campo: "qtdFacil" | "qtdMedio" | "qtdDificil"; valor: number }
+  | { type: "SET_MODO_COMPOSICAO"; modo: ModoComposicao }
+  | { type: "TOGGLE_QUESTAO"; questaoId: string }
+  | { type: "SET_EMBARALHAR"; valor: boolean }
   | { type: "AVANCAR" }
   | { type: "VOLTAR" }
   | { type: "SET_COMPONENTES"; componentes: ComponenteCatalogo[] }
@@ -71,9 +79,12 @@ const ESTADO_INICIAL: WizardState = {
     horaFim: "18:00",
   },
   passo3: {
+    modo: "SORTEIO",
     qtdFacil: 0,
     qtdMedio: 0,
     qtdDificil: 0,
+    questaoIds: [],
+    embaralharAlternativas: false,
   },
   disponibilidade: null,
   carregandoDisponibilidade: false,
@@ -99,7 +110,13 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
           componenteNome: action.nome,
         },
         disponibilidade: null,
-        passo3: { qtdFacil: 0, qtdMedio: 0, qtdDificil: 0 },
+        passo3: {
+          ...state.passo3,
+          qtdFacil: 0,
+          qtdMedio: 0,
+          qtdDificil: 0,
+          questaoIds: [],
+        },
       };
 
     case "TOGGLE_TURMA": {
@@ -126,6 +143,32 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       return {
         ...state,
         passo3: { ...state.passo3, [action.campo]: action.valor },
+      };
+
+    case "SET_MODO_COMPOSICAO":
+      return {
+        ...state,
+        passo3: { ...state.passo3, modo: action.modo },
+      };
+
+    case "TOGGLE_QUESTAO": {
+      const ids = state.passo3.questaoIds;
+      const jaExiste = ids.includes(action.questaoId);
+      return {
+        ...state,
+        passo3: {
+          ...state.passo3,
+          questaoIds: jaExiste
+            ? ids.filter((id) => id !== action.questaoId)
+            : [...ids, action.questaoId],
+        },
+      };
+    }
+
+    case "SET_EMBARALHAR":
+      return {
+        ...state,
+        passo3: { ...state.passo3, embaralharAlternativas: action.valor },
       };
 
     case "AVANCAR": {
@@ -200,16 +243,20 @@ export function passo2Valido(state: WizardState): boolean {
 }
 
 export function passo3Valido(state: WizardState): boolean {
-  const { qtdFacil, qtdMedio, qtdDificil } = state.passo3;
-  const total = qtdFacil + qtdMedio + qtdDificil;
+  const p = state.passo3;
 
+  if (p.modo === "MANUAL") {
+    return p.questaoIds.length >= 1;
+  }
+
+  const total = p.qtdFacil + p.qtdMedio + p.qtdDificil;
   if (total < 1) return false;
   if (!state.disponibilidade) return false;
 
   return (
-    qtdFacil <= state.disponibilidade.facil &&
-    qtdMedio <= state.disponibilidade.medio &&
-    qtdDificil <= state.disponibilidade.dificil
+    p.qtdFacil <= state.disponibilidade.facil &&
+    p.qtdMedio <= state.disponibilidade.medio &&
+    p.qtdDificil <= state.disponibilidade.dificil
   );
 }
 
@@ -230,17 +277,21 @@ export function montarPayloadSubmit(state: WizardState) {
 
   if (!inicio || !fim) return null;
 
+  const manual = state.passo3.modo === "MANUAL";
+
   return {
     titulo: state.passo1.titulo.trim(),
     descricao: state.passo1.descricao.trim() || null,
     componenteId: state.passo1.componenteId,
-    qtdFacil: state.passo3.qtdFacil,
-    qtdMedio: state.passo3.qtdMedio,
-    qtdDificil: state.passo3.qtdDificil,
+    qtdFacil: manual ? 0 : state.passo3.qtdFacil,
+    qtdMedio: manual ? 0 : state.passo3.qtdMedio,
+    qtdDificil: manual ? 0 : state.passo3.qtdDificil,
     vagas: parseInt(state.passo2.vagas, 10),
     duracaoMinutos: parseInt(state.passo2.duracaoMinutos, 10),
     janelaInicio: inicio.toISOString(),
     janelaFim: fim.toISOString(),
     turmaIds: state.passo1.turmaIds,
+    questaoIds: manual ? state.passo3.questaoIds : [],
+    embaralharAlternativas: state.passo3.embaralharAlternativas,
   };
 }
