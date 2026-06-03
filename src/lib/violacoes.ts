@@ -31,3 +31,12 @@ export async function getViolacoes(): Promise<PainelViolacoes> {
   }
   return res.json()
 }
+
+export async function getViolacoesProfessor(): Promise<PainelViolacoes> {
+  const res = await fetch("/api/professor/violacoes", { cache: "no-store" })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail ?? "Erro ao carregar violações")
+  }
+  return res.json()
+}
