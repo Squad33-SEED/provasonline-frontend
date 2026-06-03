@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, Panel, Tag } from "@/components/app-shell";
 import { Icon } from "@/components/icons";
 import { DialogNovaTurma } from "@/components/dialogs/dialog-nova-turma";
+import { DialogProfessoresTurma } from "@/components/dialogs/dialog-professores-turma";
 import { useToast } from "@/components/feedback/toast-provider";
 import { getCatalogo, getTurmas } from "@/lib/catalogo";
 import { isApiClientError } from "@/lib/api-client";
@@ -18,6 +19,7 @@ export default function TurmasPage() {
   const [carregando, setCarregando] = React.useState(true);
   const [erroCarga, setErroCarga] = React.useState<string | null>(null);
   const [dialogAberto, setDialogAberto] = React.useState(false);
+  const [turmaProfessores, setTurmaProfessores] = React.useState<Turma | null>(null);
 
   const carregarDados = React.useCallback(async () => {
     setCarregando(true);
@@ -80,24 +82,25 @@ export default function TurmasPage() {
                   <th className="px-4 py-3 font-medium">Modalidade</th>
                   <th className="px-4 py-3 font-medium">Ano</th>
                   <th className="px-4 py-3 font-medium">Alunos</th>
+                  <th className="px-4 py-3 font-medium">Professores</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {carregando ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-white/40">
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-white/40">
                       Carregando turmas...
                     </td>
                   </tr>
                 ) : erroCarga ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-rose-300">
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-rose-300">
                       {erroCarga}
                     </td>
                   </tr>
                 ) : turmas.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-white/40">
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-white/40">
                       Nenhuma turma cadastrada. Clique em &quot;Nova turma&quot; para criar a primeira.
                     </td>
                   </tr>
@@ -111,6 +114,15 @@ export default function TurmasPage() {
                       </td>
                       <td className="px-4 py-3 font-mono text-white/60">{t.anoLetivo}</td>
                       <td className="px-4 py-3 font-mono tabular-nums text-white/60">{t.totalAlunos}</td>
+                      <td className="px-4 py-3">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setTurmaProfessores(t)}
+                          className="h-8 rounded-lg px-3 text-xs text-white/70 hover:bg-white/[0.05] hover:text-white"
+                        >
+                          Gerenciar
+                        </Button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -125,6 +137,14 @@ export default function TurmasPage() {
         onOpenChange={setDialogAberto}
         catalogo={catalogo}
         onTurmaCriada={aoTurmaCriada}
+      />
+
+      <DialogProfessoresTurma
+        open={turmaProfessores !== null}
+        onOpenChange={(aberto) => {
+          if (!aberto) setTurmaProfessores(null);
+        }}
+        turma={turmaProfessores}
       />
     </>
   );
