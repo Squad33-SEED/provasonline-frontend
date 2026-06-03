@@ -5,6 +5,7 @@ const nav: NavItem[] = [
   { href: "/professor/questoes", label: "Banco de questões", icon: "Questions" },
   { href: "/professor/questoes/nova", label: "Nova questão", icon: "Plus" },
   { href: "/professor/provas", label: "Resultados", icon: "Chart" },
+  { href: "/professor/violacoes", label: "Violações", icon: "Alert" },
 ];
 
 export default function ProfessorLayout({
