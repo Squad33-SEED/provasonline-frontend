@@ -93,4 +93,6 @@ export type SimuladoCreatePayload = {
   janelaInicio: string;
   janelaFim: string;
   turmaIds: string[];
+  questaoIds: string[];
+  embaralharAlternativas: boolean;
 };
