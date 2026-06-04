@@ -48,3 +48,29 @@ export async function getBancoQuestoesAdmin(
     `/api/simulados/banco?componenteId=${encodeURIComponent(componenteId)}`,
   );
 }
+
+export interface RelatorioItemAluno {
+  alunoNome: string;
+  alunoCpf: string;
+  turma: string | null;
+  nota: number | null;
+  acertos: number | null;
+  total: number;
+  statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO";
+  finalizadoEm: string | null;
+}
+
+export interface RelatorioEtapa {
+  simuladoId: string;
+  titulo: string;
+  componente: string;
+  totalAlunos: number;
+  finalizados: number;
+  mediaNota: number | null;
+  percentualAcerto: number | null;
+  itens: RelatorioItemAluno[];
+}
+
+export async function getRelatorioEtapa(id: string): Promise<RelatorioEtapa> {
+  return apiGet<RelatorioEtapa>(`/api/simulados/${id}/relatorio`);
+}
