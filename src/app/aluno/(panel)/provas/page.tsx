@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel, Tag } from "@/components/app-shell";
-import { getEtapasDisponiveis, type EtapaDisponivel } from "@/lib/aluno";
+import {
+  getEtapasDisponiveis,
+  inscreverEmProva,
+  type EtapaDisponivel,
+} from "@/lib/aluno";
 
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", {
@@ -25,13 +29,21 @@ type TagInfo = { tone: "emerald" | "amber" | "rose"; label: string }
 
 function resolverTag(e: EtapaDisponivel): TagInfo {
   if (e.statusResultado === "FINALIZADO") return { tone: "emerald", label: "Realizada ✓" }
-  if (e.statusResultado === "EXPIRADO") return { tone: "rose", label: "Expirada" }
+  if (e.statusResultado === "EXPIRADO")   return { tone: "rose",    label: "Expirada" }
   if (e.statusResultado === "EM_ANDAMENTO") return { tone: "amber", label: "Em andamento" }
-  if (e.ativa) return { tone: "emerald", label: "Pronta para iniciar" }
+  if (e.ativa)    return { tone: "emerald", label: "Disponível agora" }
+  if (e.inscrito) return { tone: "amber",   label: "Inscrito" }
   return { tone: "amber", label: "Agendada" }
 }
 
-function AcaoEtapa({ etapa, onNavegar }: { etapa: EtapaDisponivel; onNavegar: (href: string) => void }) {
+interface AcaoProps {
+  etapa: EtapaDisponivel
+  onNavegar: (href: string) => void
+  onInscrever: (id: string) => Promise<void>
+  inscrevendo: boolean
+}
+
+function AcaoEtapa({ etapa, onNavegar, onInscrever, inscrevendo }: AcaoProps) {
   if (etapa.statusResultado === "FINALIZADO") {
     return (
       <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-emerald-400/70">
@@ -57,7 +69,7 @@ function AcaoEtapa({ etapa, onNavegar }: { etapa: EtapaDisponivel; onNavegar: (h
         onClick={() => onNavegar(`/aluno/prova/${etapa.id}/iniciar`)}
         className="h-8 rounded-lg bg-amber-400 px-4 text-xs font-semibold text-[#0c1a33] hover:bg-amber-300"
       >
-        Continuar
+        Continuar prova
       </Button>
     )
   }
@@ -68,15 +80,27 @@ function AcaoEtapa({ etapa, onNavegar }: { etapa: EtapaDisponivel; onNavegar: (h
         onClick={() => onNavegar(`/aluno/prova/${etapa.id}/iniciar`)}
         className="h-8 rounded-lg bg-amber-400 px-4 text-xs font-semibold text-[#0c1a33] hover:bg-amber-300"
       >
-        Iniciar prova
+        Fazer prova
       </Button>
     )
   }
 
+  if (etapa.inscrito) {
+    return (
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-amber-400/70">
+        Inscrito · Início em {formatarData(etapa.janelaInicio)}
+      </span>
+    )
+  }
+
   return (
-    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/30">
-      Disponível em {formatarData(etapa.janelaInicio)}
-    </span>
+    <Button
+      onClick={() => onInscrever(etapa.id)}
+      disabled={inscrevendo}
+      className="h-8 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 text-xs font-semibold text-amber-300 hover:bg-amber-400/20 disabled:opacity-50"
+    >
+      {inscrevendo ? "Inscrevendo..." : "Inscrever-se"}
+    </Button>
   )
 }
 
@@ -85,21 +109,34 @@ export default function ProvasAluno() {
   const [etapas, setEtapas] = useState<EtapaDisponivel[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [inscrevendoId, setInscrevendoId] = useState<string | null>(null);
 
   useEffect(() => {
     getEtapasDisponiveis()
       .then(setEtapas)
-      .catch(() => {
-        setErro("Não foi possível carregar as etapas.");
-      })
+      .catch(() => setErro("Não foi possível carregar as etapas."))
       .finally(() => setCarregando(false));
   }, []);
+
+  async function handleInscrever(id: string) {
+    setInscrevendoId(id);
+    try {
+      await inscreverEmProva(id);
+      setEtapas((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, inscrito: true } : e))
+      );
+    } catch {
+      setErro("Não foi possível realizar a inscrição. Tente novamente.");
+    } finally {
+      setInscrevendoId(null);
+    }
+  }
 
   return (
     <>
       <PageHeader
-        title="Provas disponíveis"
-        description="Etapas publicadas pela coordenação — o cronômetro inicia ao abrir a prova"
+        title="Provas reais"
+        description="Etapas publicadas pela coordenação — inscreva-se e realize a prova na janela disponível"
       />
 
       <section className="px-8 py-6">
@@ -116,7 +153,7 @@ export default function ProvasAluno() {
         {!carregando && !erro && etapas.length === 0 && (
           <Panel>
             <p className="text-sm text-white/40">
-              Nenhuma etapa disponível no momento.
+              Nenhuma prova disponível no momento.
             </p>
           </Panel>
         )}
@@ -124,7 +161,7 @@ export default function ProvasAluno() {
         {!carregando && !erro && etapas.length > 0 && (
           <div className="grid grid-cols-2 gap-4">
             {etapas.map((e) => {
-              const tag = resolverTag(e)
+              const tag = resolverTag(e);
               return (
                 <Panel key={e.id}>
                   <div className="flex items-start justify-between gap-4">
@@ -170,10 +207,15 @@ export default function ProvasAluno() {
                   </div>
 
                   <div className="mt-4 flex items-center justify-end">
-                    <AcaoEtapa etapa={e} onNavegar={router.push} />
+                    <AcaoEtapa
+                      etapa={e}
+                      onNavegar={router.push}
+                      onInscrever={handleInscrever}
+                      inscrevendo={inscrevendoId === e.id}
+                    />
                   </div>
                 </Panel>
-              )
+              );
             })}
           </div>
         )}
