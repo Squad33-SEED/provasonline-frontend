@@ -60,6 +60,7 @@ export default function AdminDashboard() {
   }, []);
 
   const emExecucao = dashboard?.emExecucao ?? [];
+  const desempenhoPorEscola = dashboard?.desempenhoPorEscola ?? [];
 
   return (
     <>
@@ -68,14 +69,13 @@ export default function AdminDashboard() {
         description="Monitoramento em tempo real das etapas em andamento"
       />
 
-      <section className="grid grid-cols-4 gap-4 px-8 py-6">
+      <section className="grid grid-cols-3 gap-4 px-8 py-6">
         <Stat
           label="Provas Ativas"
           value={dashboard?.etapasAtivas ?? 0}
           accent="amber"
           hint={carregando ? "Carregando..." : "Etapas abertas agora"}
         />
-        <Stat label="Alunos online" value={78} accent="blue" hint="Sessões ativas" />
         <Stat
           label="Provas finalizadas"
           value={dashboard?.etapasFinalizadas ?? 0}
@@ -177,57 +177,35 @@ export default function AdminDashboard() {
         </Panel>
       </section>
 
-      <section className="grid grid-cols-2 gap-4 px-8 pb-8">
+      <section className="px-8 pb-8">
         <Panel>
           <h3 className="pb-3 text-sm font-semibold text-white">
             Desempenho por escola
           </h3>
-          <ul className="flex flex-col gap-3">
-            {[
-              { escola: "CEAS Gov. Valadares", media: 7.4, alunos: 120 },
-              { escola: "E.E. Murilo Braga", media: 8.1, alunos: 98 },
-              { escola: "CESAJ", media: 6.2, alunos: 64 },
-              { escola: "E.E. Dom Luciano", media: 7.9, alunos: 142 },
-            ].map((e) => (
-              <li
-                key={e.escola}
-                className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5"
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm text-white">{e.escola}</span>
-                  <span className="text-xs text-white/40">
-                    {e.alunos} alunos avaliados
+          {desempenhoPorEscola.length === 0 ? (
+            <p className="py-6 text-center text-sm text-white/40">
+              Sem dados de desempenho ainda.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {desempenhoPorEscola.map((e) => (
+                <li
+                  key={e.escola}
+                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm text-white">{e.escola}</span>
+                    <span className="text-xs text-white/40">
+                      {e.alunos} alunos avaliados
+                    </span>
+                  </div>
+                  <span className="font-mono text-base font-semibold text-amber-300 tabular-nums">
+                    {e.media.toFixed(1)}
                   </span>
-                </div>
-                <span className="font-mono text-base font-semibold text-amber-300 tabular-nums">
-                  {e.media.toFixed(1)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-
-        <Panel>
-          <h3 className="pb-3 text-sm font-semibold text-white">
-            Log de acessos recentes
-          </h3>
-          <ul className="flex flex-col divide-y divide-white/5">
-            {[
-              { t: "10:42", evt: "Login aluno", d: "111.xxx.xxx-96 · IP autorizado" },
-              { t: "10:38", evt: "Prova finalizada", d: "Tentativa #8712 · Matemática" },
-              { t: "10:31", evt: "Bloqueio IP", d: "Aluno fora da escola (45.x.x.x)" },
-              { t: "10:22", evt: "Importação CSV", d: "64 alunos · Turma 9ºB" },
-              { t: "10:05", evt: "Login professor", d: "Ana Paula · Geometria" },
-            ].map((l, i) => (
-              <li key={i} className="flex items-center justify-between py-2.5">
-                <div className="flex flex-col">
-                  <span className="text-sm text-white">{l.evt}</span>
-                  <span className="text-xs text-white/40">{l.d}</span>
-                </div>
-                <span className="font-mono text-xs text-white/50">{l.t}</span>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          )}
         </Panel>
       </section>
     </>

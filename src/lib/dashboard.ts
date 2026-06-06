@@ -9,10 +9,17 @@ export type DashboardEmExecucaoItem = {
   finalizados: number;
 };
 
+export type DesempenhoEscolaItem = {
+  escola: string;
+  media: number;
+  alunos: number;
+};
+
 export type DashboardResponse = {
   etapasAtivas: number;
   etapasFinalizadas: number;
   emExecucao: DashboardEmExecucaoItem[];
+  desempenhoPorEscola: DesempenhoEscolaItem[];
 };
 
 export async function getDashboard(): Promise<DashboardResponse> {
