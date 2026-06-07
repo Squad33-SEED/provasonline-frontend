@@ -56,6 +56,12 @@ export type ComponenteCatalogo = {
   modalidade: ModalidadeResumo;
 };
 
+export type NivelCatalogo = {
+  id: string;
+  nome: string;
+  ordem: number;
+};
+
 export type Disponibilidade = {
   componenteId: string;
   facil: number;
@@ -95,4 +101,7 @@ export type SimuladoCreatePayload = {
   turmaIds: string[];
   questaoIds: string[];
   embaralharAlternativas: boolean;
+  geraCertificado: boolean;
+  nivelEnsinoId: string | null;
+  notaMinimaCertificacao: number | null;
 };

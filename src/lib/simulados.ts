@@ -2,6 +2,7 @@ import { apiGet, apiPost } from "@/lib/api-client";
 import type {
   ComponenteCatalogo,
   Disponibilidade,
+  NivelCatalogo,
   Simulado,
   SimuladoCreatePayload,
   Turma,
@@ -9,6 +10,10 @@ import type {
 
 export async function getComponentes(): Promise<ComponenteCatalogo[]> {
   return apiGet<ComponenteCatalogo[]>("/api/catalogo/componentes");
+}
+
+export async function getNiveis(): Promise<NivelCatalogo[]> {
+  return apiGet<NivelCatalogo[]>("/api/catalogo/niveis");
 }
 
 export async function getDisponibilidade(

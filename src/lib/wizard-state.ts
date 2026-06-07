@@ -9,6 +9,9 @@ export type PassoIdentificacaoState = {
   componenteId: string;
   componenteNome: string;
   turmaIds: string[];
+  geraCertificado: boolean;
+  nivelEnsinoId: string;
+  notaMinimaCertificacao: string;
 };
 
 export type PassoJanelaState = {
@@ -44,7 +47,8 @@ export type WizardState = {
 };
 
 export type WizardAction =
-  | { type: "ATUALIZAR_PASSO_1"; campo: keyof PassoIdentificacaoState; valor: string }
+  | { type: "ATUALIZAR_PASSO_1"; campo: "titulo" | "descricao" | "nivelEnsinoId" | "notaMinimaCertificacao"; valor: string }
+  | { type: "SET_GERA_CERTIFICADO"; valor: boolean }
   | { type: "SELECIONAR_COMPONENTE"; id: string; nome: string }
   | { type: "TOGGLE_TURMA"; turmaId: string }
   | { type: "ATUALIZAR_PASSO_2"; campo: keyof PassoJanelaState; valor: string }
@@ -69,6 +73,9 @@ const ESTADO_INICIAL: WizardState = {
     componenteId: "",
     componenteNome: "",
     turmaIds: [],
+    geraCertificado: false,
+    nivelEnsinoId: "",
+    notaMinimaCertificacao: "6.0",
   },
   passo2: {
     vagas: "100",
@@ -99,6 +106,16 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       return {
         ...state,
         passo1: { ...state.passo1, [action.campo]: action.valor },
+      };
+
+    case "SET_GERA_CERTIFICADO":
+      return {
+        ...state,
+        passo1: {
+          ...state.passo1,
+          geraCertificado: action.valor,
+          nivelEnsinoId: action.valor ? state.passo1.nivelEnsinoId : "",
+        },
       };
 
     case "SELECIONAR_COMPONENTE":
@@ -220,7 +237,9 @@ export function useWizard() {
 
 export function passo1Valido(state: WizardState): boolean {
   const titulo = state.passo1.titulo.trim();
-  return titulo.length >= 3 && state.passo1.componenteId.length > 0;
+  if (titulo.length < 3 || state.passo1.componenteId.length === 0) return false;
+  if (state.passo1.geraCertificado && !state.passo1.nivelEnsinoId) return false;
+  return true;
 }
 
 export function passo2Valido(state: WizardState): boolean {
@@ -293,5 +312,10 @@ export function montarPayloadSubmit(state: WizardState) {
     turmaIds: state.passo1.turmaIds,
     questaoIds: manual ? state.passo3.questaoIds : [],
     embaralharAlternativas: state.passo3.embaralharAlternativas,
+    geraCertificado: state.passo1.geraCertificado,
+    nivelEnsinoId: state.passo1.geraCertificado ? state.passo1.nivelEnsinoId : null,
+    notaMinimaCertificacao: state.passo1.geraCertificado
+      ? parseFloat(state.passo1.notaMinimaCertificacao.replace(",", ".")) || 6.0
+      : null,
   };
 }
