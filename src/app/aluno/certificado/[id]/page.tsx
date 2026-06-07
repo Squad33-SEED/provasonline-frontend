@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { API_URL, apiFetch } from "@/lib/api";
 import type { CertificadoItem } from "@/lib/certificados";
-import { ImprimirBotao } from "./imprimir-botao";
 
 function formatarData(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR");
@@ -47,7 +46,6 @@ export default async function CertificadoImprimivelPage({
         >
           ← Voltar
         </Link>
-        <ImprimirBotao />
       </div>
 
       <article className="mx-auto max-w-3xl rounded-2xl border border-slate-300 bg-white p-12 shadow-sm">
