@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { isValidCpf, maskCpf, unmaskCpf } from "@/lib/cpf";
 import { roleHomePath, type Role } from "@/lib/auth";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const search = useSearchParams();
   const [cpf, setCpf] = useState("");
@@ -25,25 +25,40 @@ export default function LoginPage() {
       setError("CPF inválido");
       return;
     }
+
     if (senha.length < 1) {
       setError("Informe a senha");
       return;
     }
 
     setLoading(true);
+
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cpf: unmaskCpf(cpf), senha }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cpf: unmaskCpf(cpf),
+          senha,
+        }),
       });
+
       const data = await res.json();
+
       if (!res.ok) {
         setError(data?.detail ?? "Falha no login");
         return;
       }
+
       const next = search.get("next");
-      const target = next && next.startsWith("/") ? next : roleHomePath(data.role as Role);
+
+      const target =
+        next && next.startsWith("/")
+          ? next
+          : roleHomePath(data.role as Role);
+
       router.replace(target);
       router.refresh();
     } catch {
@@ -59,10 +74,12 @@ export default function LoginPage() {
         aria-hidden
         className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,rgba(148,163,184,0.3)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.3)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
       />
+
       <div
         aria-hidden
         className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[560px] rounded-full bg-blue-600/[0.14] blur-[130px]"
       />
+
       <div
         aria-hidden
         className="pointer-events-none absolute bottom-0 right-0 size-[360px] rounded-full bg-amber-400/[0.08] blur-[120px]"
@@ -78,10 +95,12 @@ export default function LoginPage() {
             priority
             className="size-11 rounded-full object-cover ring-1 ring-white/15"
           />
+
           <div className="flex flex-col leading-tight">
             <span className="text-[11px] uppercase tracking-[0.16em] text-white/50">
               Governo de Sergipe
             </span>
+
             <span className="text-sm font-semibold text-white">
               Secretaria da Educação
             </span>
@@ -93,6 +112,7 @@ export default function LoginPage() {
             <h1 className="text-xl font-semibold tracking-tight text-white">
               Acesse sua conta
             </h1>
+
             <p className="text-sm text-white/50">
               Informe seu CPF e senha
             </p>
@@ -100,9 +120,13 @@ export default function LoginPage() {
 
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="cpf" className="text-xs font-medium text-white/70">
+              <Label
+                htmlFor="cpf"
+                className="text-xs font-medium text-white/70"
+              >
                 CPF
               </Label>
+
               <Input
                 id="cpf"
                 inputMode="numeric"
@@ -116,9 +140,13 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="senha" className="text-xs font-medium text-white/70">
+              <Label
+                htmlFor="senha"
+                className="text-xs font-medium text-white/70"
+              >
                 Senha
               </Label>
+
               <Input
                 id="senha"
                 type="password"
@@ -152,5 +180,13 @@ export default function LoginPage() {
         </p>
       </main>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
