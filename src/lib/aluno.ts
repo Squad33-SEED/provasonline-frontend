@@ -17,6 +17,7 @@ export interface EtapaDisponivel {
   ativa: boolean
   jaIniciada: boolean
   inscrito: boolean
+  geraCertificado: boolean
   statusResultado?: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
   resultadoId?: string
 }

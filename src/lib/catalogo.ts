@@ -53,6 +53,9 @@ export type AlunoCreatePayload = {
   dataNascimento: string;
   necessidadeEspecial: boolean;
   turmaId: string | null;
+  tipoCandidato?: "REGULAR" | "EXTERNO";
+  prereqValidado?: boolean;
+  prereqDocumento?: string | null;
 };
 
 export async function getCatalogo(): Promise<Catalogo> {

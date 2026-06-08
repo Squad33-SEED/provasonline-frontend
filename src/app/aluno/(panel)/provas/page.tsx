@@ -166,7 +166,14 @@ export default function ProvasAluno() {
                 <Panel key={e.id}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex flex-col gap-1">
-                      <Tag tone={tag.tone}>{tag.label}</Tag>
+                      <div className="flex items-center gap-2">
+                        <Tag tone={tag.tone}>{tag.label}</Tag>
+                        {e.geraCertificado && (
+                          <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300 ring-1 ring-amber-400/30">
+                            Certificadora
+                          </span>
+                        )}
+                      </div>
                       <h3 className="pt-2 text-base font-semibold text-white">
                         {e.titulo}
                       </h3>
