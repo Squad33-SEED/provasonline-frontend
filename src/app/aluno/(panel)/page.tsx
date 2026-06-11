@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel, Stat, Tag } from "@/components/app-shell";
@@ -10,6 +11,7 @@ import { Icon } from "@/components/icons";
 import {
   getEtapasDisponiveis,
   getHistorico,
+  getProvaEmAndamento,
   type EtapaDisponivel,
   type HistoricoItem,
 } from "@/lib/aluno";
@@ -46,21 +48,32 @@ function formatarHora(iso: string): string {
 }
 
 export default function AlunoDashboard() {
+  const router = useRouter();
+
   const [proximas, setProximas] = useState<EtapaDisponivel[]>([]);
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getEtapasDisponiveis(),
-      getHistorico(),
-    ])
-      .then(([etapas, hist]) => {
-        setProximas(etapas);
-        setHistorico(hist);
-      })
-      .finally(() => setCarregando(false));
-  }, []);
+    getProvaEmAndamento().then((prova) => {
+      if (prova.emAndamento && prova.simuladoId && prova.resultadoId) {
+        router.replace(
+          `/aluno/prova/${prova.simuladoId}/responder?resultadoId=${prova.resultadoId}&expiraEm=${encodeURIComponent(prova.expiraEm ?? "")}`
+        )
+        return
+      }
+
+      Promise.all([
+        getEtapasDisponiveis(),
+        getHistorico(),
+      ])
+        .then(([etapas, hist]) => {
+          setProximas(etapas);
+          setHistorico(hist);
+        })
+        .finally(() => setCarregando(false));
+    })
+  }, [router]);
 
   const resultadosFinalizados = historico.filter(
     (h) =>
@@ -160,20 +173,22 @@ export default function AlunoDashboard() {
                     <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-emerald-400/70">
                       Concluída
                     </span>
-                  ) : p.ativa ? (
+                  ) : p.statusResultado === "EM_ANDAMENTO" || p.ativa ? (
                     <Link href={`/aluno/prova/${p.id}/iniciar`}>
                       <Button className="h-8 rounded-lg bg-amber-400 px-4 text-xs font-semibold text-[#0c1a33] hover:bg-amber-300">
-                        Iniciar
+                        {p.statusResultado === "EM_ANDAMENTO" ? "Continuar" : "Iniciar"}
                       </Button>
                     </Link>
                   ) : p.inscrito ? (
                     <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-amber-400/70">
-                      Inscrito
+                      Inscrito · Aguardando início
                     </span>
                   ) : (
-                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/30">
-                      Aguardando
-                    </span>
+                    <Link href="/aluno/provas">
+                      <Button className="h-8 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 text-xs font-semibold text-amber-300 hover:bg-amber-400/20">
+                        Inscrever-se
+                      </Button>
+                    </Link>
                   )}
                 </li>
               ))}
