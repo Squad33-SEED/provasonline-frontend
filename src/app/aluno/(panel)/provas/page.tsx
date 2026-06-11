@@ -93,6 +93,17 @@ function AcaoEtapa({ etapa, onNavegar, onInscrever, inscrevendo }: AcaoProps) {
     )
   }
 
+  if (etapa.vagasDisponiveis <= 0) {
+    return (
+      <Button
+        disabled
+        className="h-8 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-xs font-semibold text-white/30 disabled:opacity-100"
+      >
+        Vagas esgotadas
+      </Button>
+    )
+  }
+
   return (
     <Button
       onClick={() => onInscrever(etapa.id)}
@@ -123,10 +134,22 @@ export default function ProvasAluno() {
     try {
       await inscreverEmProva(id);
       setEtapas((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, inscrito: true } : e))
+        prev.map((e) =>
+          e.id === id
+            ? {
+                ...e,
+                inscrito: true,
+                vagasDisponiveis: Math.max(e.vagasDisponiveis - 1, 0),
+              }
+            : e
+        )
       );
-    } catch {
-      setErro("Não foi possível realizar a inscrição. Tente novamente.");
+    } catch (err) {
+      setErro(
+        err instanceof Error && err.message
+          ? err.message
+          : "Não foi possível realizar a inscrição. Tente novamente."
+      );
     } finally {
       setInscrevendoId(null);
     }
@@ -183,7 +206,7 @@ export default function ProvasAluno() {
                     </div>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                  <div className="mt-4 grid grid-cols-4 gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3">
                     <div className="flex flex-col">
                       <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">
                         Início
@@ -209,6 +232,18 @@ export default function ProvasAluno() {
                       </span>
                       <span className="pt-1 font-mono text-xs text-white/70">
                         {e.totalQuestoes}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase tracking-[0.14em] text-white/40">
+                        Vagas
+                      </span>
+                      <span
+                        className={`pt-1 font-mono text-xs ${
+                          e.vagasDisponiveis <= 0 ? "text-rose-400" : "text-white/70"
+                        }`}
+                      >
+                        {e.vagasDisponiveis} / {e.vagasTotais}
                       </span>
                     </div>
                   </div>

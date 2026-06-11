@@ -12,6 +12,8 @@ export interface EtapaDisponivel {
   duracaoMinutos: number
   totalQuestoes: number
   vagas: number
+  vagasTotais: number
+  vagasDisponiveis: number
   janelaInicio: string
   janelaFim: string
   ativa: boolean
