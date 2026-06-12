@@ -2,6 +2,8 @@ import { apiGet, apiPost } from "@/lib/api-client";
 import type {
   ComponenteCatalogo,
   Disponibilidade,
+  ProfessorQuestaoItem,
+  QuestaoBanco,
   Simulado,
   SimuladoCreatePayload,
   Turma,
@@ -9,6 +11,22 @@ import type {
 
 export async function getComponentes(): Promise<ComponenteCatalogo[]> {
   return apiGet<ComponenteCatalogo[]>("/api/catalogo/componentes");
+}
+
+export async function getBancoQuestoes(
+  componenteId: string,
+): Promise<QuestaoBanco[]> {
+  return apiGet<QuestaoBanco[]>(
+    `/api/simulados/banco?componenteId=${encodeURIComponent(componenteId)}`,
+  );
+}
+
+export async function getBancoQuestoesProfessor(
+  componenteId: string,
+): Promise<ProfessorQuestaoItem[]> {
+  return apiGet<ProfessorQuestaoItem[]>(
+    `/api/professor/questoes?componenteId=${encodeURIComponent(componenteId)}`,
+  );
 }
 
 export async function getDisponibilidade(
