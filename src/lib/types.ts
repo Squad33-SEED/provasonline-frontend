@@ -79,6 +79,8 @@ export type Simulado = {
   qtdDificil: number;
   totalQuestoes: number;
   vagas: number;
+  totalInscritos: number;
+  vagasDisponiveis: number;
   duracaoMinutos: number;
   janelaInicio: string;
   janelaFim: string;

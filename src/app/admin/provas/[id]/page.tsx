@@ -274,7 +274,22 @@ export default function DetalheEtapaPage() {
                   Vagas
                 </p>
                 <p className="text-2xl font-semibold tabular-nums text-white">
+                  <span className={simulado.totalInscritos > 0 ? "text-amber-300" : ""}>
+                    {simulado.totalInscritos}
+                  </span>
+                  <span className="text-white/30"> / </span>
                   {simulado.vagas}
+                </p>
+                <p
+                  className={`mt-2 text-[10px] ${
+                    simulado.vagasDisponiveis <= 0
+                      ? "text-rose-400/70"
+                      : "text-white/40"
+                  }`}
+                >
+                  {simulado.vagasDisponiveis <= 0
+                    ? "Vagas esgotadas"
+                    : `${simulado.vagasDisponiveis} disponíveis`}
                 </p>
               </Panel>
             </div>
