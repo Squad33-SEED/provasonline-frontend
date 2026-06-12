@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel, Tag } from "@/components/app-shell";
 import { Icon } from "@/components/icons";
@@ -42,15 +41,7 @@ export default function BancoQuestoes() {
     <>
       <PageHeader
         title="Banco de questões"
-        description="Gerencie o acervo do seu componente — filtre por assunto e dificuldade"
-        action={
-          <Link href="/professor/questoes/nova">
-            <Button className="h-9 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-[#0c1a33] hover:bg-amber-300">
-              <Icon.Plus />
-              Nova questão
-            </Button>
-          </Link>
-        }
+        description="Acervo puxado da API Questions (questions.zenixcode.cloud) — filtre por dificuldade"
       />
 
       <section className="px-8 py-6">
