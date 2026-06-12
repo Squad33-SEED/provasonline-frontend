@@ -32,21 +32,11 @@ export function PassoIdentificacao({ state, dispatch }: Props) {
       .then(setTurmas)
       .catch(() => setTurmas([]))
       .finally(() => setCarregandoTurmas(false));
+
     getNiveis()
       .then(setNiveis)
       .catch(() => setNiveis([]));
   }, []);
-
-  function aoSelecionarComponente(id: string) {
-    const componente = componentes.find((c) => c.id === id);
-    if (componente) {
-      dispatch({
-        type: "SELECIONAR_COMPONENTE",
-        id: componente.id,
-        nome: `${componente.nome} · ${componente.modalidade.nome}`,
-      });
-    }
-  }
 
   function aoToggleTurma(turmaId: string) {
     dispatch({ type: "TOGGLE_TURMA", turmaId });
@@ -108,32 +98,62 @@ export function PassoIdentificacao({ state, dispatch }: Props) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-white/70">Componente curricular</Label>
-        <Select
-          value={passo1.componenteId}
-          onValueChange={aoSelecionarComponente}
-          disabled={carregandoComponentes || componentes.length === 0}
-        >
-          <SelectTrigger>
-            <SelectValue
-              placeholder={
-                carregandoComponentes
-                  ? "Carregando componentes..."
-                  : "Selecione um componente"
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {componentes.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome} · {c.modalidade.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-white/70">
+            Componentes curriculares
+          </Label>
+
+          {passo1.componenteIds.length > 0 && (
+            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+              {passo1.componenteIds.length} selecionado
+              {passo1.componenteIds.length > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.02] p-2">
+          {carregandoComponentes ? (
+            <p className="text-[11px] text-white/40">
+              Carregando componentes...
+            </p>
+          ) : componentes.length === 0 ? (
+            <p className="text-[11px] text-white/40">
+              Nenhum componente cadastrado.
+            </p>
+          ) : (
+            componentes.map((c) => {
+              const selecionado = passo1.componenteIds.includes(c.id);
+
+              return (
+                <label
+                  key={c.id}
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-white/[0.04]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selecionado}
+                    onChange={() =>
+                      dispatch({
+                        type: "TOGGLE_COMPONENTE",
+                        id: c.id,
+                        nome: `${c.nome} · ${c.modalidade.nome}`,
+                      })
+                    }
+                    className="h-3.5 w-3.5 shrink-0 accent-amber-400"
+                  />
+
+                  <span className="text-xs font-medium text-white/80">
+                    {c.nome} · {c.modalidade.nome}
+                  </span>
+                </label>
+              );
+            })
+          )}
+        </div>
+
         <p className="text-[11px] text-white/40">
-          A disponibilidade de questões será verificada automaticamente no
-          próximo passo.
+          Selecione um ou mais componentes. A disponibilidade de questões será
+          verificada automaticamente no próximo passo.
         </p>
       </div>
 
@@ -143,7 +163,10 @@ export function PassoIdentificacao({ state, dispatch }: Props) {
             type="checkbox"
             checked={passo1.geraCertificado}
             onChange={(e) =>
-              dispatch({ type: "SET_GERA_CERTIFICADO", valor: e.target.checked })
+              dispatch({
+                type: "SET_GERA_CERTIFICADO",
+                valor: e.target.checked,
+              })
             }
             className="h-3.5 w-3.5 shrink-0 accent-amber-400"
           />
@@ -164,7 +187,11 @@ export function PassoIdentificacao({ state, dispatch }: Props) {
               <Select
                 value={passo1.nivelEnsinoId}
                 onValueChange={(v) =>
-                  dispatch({ type: "ATUALIZAR_PASSO_1", campo: "nivelEnsinoId", valor: v })
+                  dispatch({
+                    type: "ATUALIZAR_PASSO_1",
+                    campo: "nivelEnsinoId",
+                    valor: v,
+                  })
                 }
                 disabled={niveis.length === 0}
               >
