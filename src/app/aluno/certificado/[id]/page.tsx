@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { API_URL, apiFetch } from "@/lib/api";
+import { APP_URL, apiFetch } from "@/lib/api";
 import type { CertificadoItem } from "@/lib/certificados";
 
 function formatarData(iso: string) {
@@ -28,7 +28,7 @@ export default async function CertificadoImprimivelPage({
     ? "Certificado de Conclusão"
     : "Declaração Parcial de Proficiência";
 
-  const urlVerificacao = `${API_URL}/certificados/verificar/${cert.codigoVerificacao}`;
+  const urlVerificacao = `${APP_URL}/verificar/${cert.codigoVerificacao}`;
   const qrSvg = await QRCode.toString(urlVerificacao, {
     type: "svg",
     margin: 1,
