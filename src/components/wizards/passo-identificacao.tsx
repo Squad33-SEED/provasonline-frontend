@@ -11,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getTurmas } from "@/lib/simulados";
-import type { Turma } from "@/lib/types";
+import { getNiveis, getTurmas } from "@/lib/simulados";
+import type { NivelCatalogo, Turma } from "@/lib/types";
 import type { WizardAction, WizardState } from "@/lib/wizard-state";
 
 type Props = {
@@ -25,24 +25,18 @@ export function PassoIdentificacao({ state, dispatch }: Props) {
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [carregandoTurmas, setCarregandoTurmas] = useState(true);
+  const [niveis, setNiveis] = useState<NivelCatalogo[]>([]);
 
   useEffect(() => {
     getTurmas()
       .then(setTurmas)
       .catch(() => setTurmas([]))
       .finally(() => setCarregandoTurmas(false));
-  }, []);
 
-  function aoSelecionarComponente(id: string) {
-    const componente = componentes.find((c) => c.id === id);
-    if (componente) {
-      dispatch({
-        type: "SELECIONAR_COMPONENTE",
-        id: componente.id,
-        nome: `${componente.nome} · ${componente.modalidade.nome}`,
-      });
-    }
-  }
+    getNiveis()
+      .then(setNiveis)
+      .catch(() => setNiveis([]));
+  }, []);
 
   function aoToggleTurma(turmaId: string) {
     dispatch({ type: "TOGGLE_TURMA", turmaId });
@@ -104,33 +98,135 @@ export function PassoIdentificacao({ state, dispatch }: Props) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-white/70">Componente curricular</Label>
-        <Select
-          value={passo1.componenteId}
-          onValueChange={aoSelecionarComponente}
-          disabled={carregandoComponentes || componentes.length === 0}
-        >
-          <SelectTrigger>
-            <SelectValue
-              placeholder={
-                carregandoComponentes
-                  ? "Carregando componentes..."
-                  : "Selecione um componente"
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {componentes.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome} · {c.modalidade.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-white/70">
+            Componentes curriculares
+          </Label>
+
+          {passo1.componenteIds.length > 0 && (
+            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+              {passo1.componenteIds.length} selecionado
+              {passo1.componenteIds.length > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.02] p-2">
+          {carregandoComponentes ? (
+            <p className="text-[11px] text-white/40">
+              Carregando componentes...
+            </p>
+          ) : componentes.length === 0 ? (
+            <p className="text-[11px] text-white/40">
+              Nenhum componente cadastrado.
+            </p>
+          ) : (
+            componentes.map((c) => {
+              const selecionado = passo1.componenteIds.includes(c.id);
+
+              return (
+                <label
+                  key={c.id}
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-white/[0.04]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selecionado}
+                    onChange={() =>
+                      dispatch({
+                        type: "TOGGLE_COMPONENTE",
+                        id: c.id,
+                        nome: `${c.nome} · ${c.modalidade.nome}`,
+                      })
+                    }
+                    className="h-3.5 w-3.5 shrink-0 accent-amber-400"
+                  />
+
+                  <span className="text-xs font-medium text-white/80">
+                    {c.nome} · {c.modalidade.nome}
+                  </span>
+                </label>
+              );
+            })
+          )}
+        </div>
+
         <p className="text-[11px] text-white/40">
-          A disponibilidade de questões será verificada automaticamente no
-          próximo passo.
+          Selecione um ou mais componentes. A disponibilidade de questões será
+          verificada automaticamente no próximo passo.
         </p>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+        <label className="flex cursor-pointer items-center gap-3">
+          <input
+            type="checkbox"
+            checked={passo1.geraCertificado}
+            onChange={(e) =>
+              dispatch({
+                type: "SET_GERA_CERTIFICADO",
+                valor: e.target.checked,
+              })
+            }
+            className="h-3.5 w-3.5 shrink-0 accent-amber-400"
+          />
+          <span className="flex flex-col">
+            <span className="text-xs font-medium text-white/80">
+              Esta etapa gera certificado
+            </span>
+            <span className="text-[10px] text-white/40">
+              Aprovados acumulam para o certificado de conclusão do nível
+            </span>
+          </span>
+        </label>
+
+        {passo1.geraCertificado && (
+          <div className="flex flex-col gap-3 pl-6">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-white/70">Nível certificado</Label>
+              <Select
+                value={passo1.nivelEnsinoId}
+                onValueChange={(v) =>
+                  dispatch({
+                    type: "ATUALIZAR_PASSO_1",
+                    campo: "nivelEnsinoId",
+                    valor: v,
+                  })
+                }
+                disabled={niveis.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o nível" />
+                </SelectTrigger>
+                <SelectContent>
+                  {niveis.map((n) => (
+                    <SelectItem key={n.id} value={n.id}>
+                      {n.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="wizard-nota-min" className="text-xs text-white/70">
+                Nota mínima por componente
+              </Label>
+              <Input
+                id="wizard-nota-min"
+                value={passo1.notaMinimaCertificacao}
+                onChange={(e) =>
+                  dispatch({
+                    type: "ATUALIZAR_PASSO_1",
+                    campo: "notaMinimaCertificacao",
+                    valor: e.target.value,
+                  })
+                }
+                className="h-10 w-28 rounded-lg border-white/10 bg-white/[0.03] text-white"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

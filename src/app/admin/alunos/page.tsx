@@ -24,6 +24,13 @@ export default function AlunosPage() {
 
   const [modalImportarAberto, setModalImportarAberto] = React.useState(false);
   const [arquivoCsv, setArquivoCsv] = React.useState<File | null>(null);
+  const [importando, setImportando] = React.useState(false);
+  const [progresso, setProgresso] = React.useState<{
+    processadas: number;
+    total: number;
+    importados: number;
+    ignorados: number;
+  } | null>(null);
 
   React.useEffect(() => {
     const id = setTimeout(() => setBuscaAplicada(busca.trim()), 350);
@@ -65,6 +72,7 @@ export default function AlunosPage() {
 
   function fecharModalImportar() {
     setArquivoCsv(null);
+    setProgresso(null);
     setModalImportarAberto(false);
   }
 
@@ -90,40 +98,84 @@ export default function AlunosPage() {
   }
 
   async function enviarPlanilha() {
-  if (!arquivoCsv) return;
+    if (!arquivoCsv) return;
 
-  const formData = new FormData();
-  formData.append("arquivo", arquivoCsv);
+    setImportando(true);
+    setProgresso(null);
 
-  try {
-    const response = await fetch("/api/alunos/importar", {
-      method: "POST",
-      body: formData,
+    try {
+      const formData = new FormData();
+      formData.append("arquivo", arquivoCsv);
+
+      const respostaUpload = await fetch("/api/alunos/importar", {
+        method: "POST",
+        body: formData,
       });
 
-    const data = await response.json();
+      const dadosUpload = await respostaUpload.json();
 
-    if (!response.ok) {
-      throw new Error(data.detail || "Erro ao enviar planilha");
+      if (!respostaUpload.ok) {
+        throw new Error(dadosUpload.detail || "Erro ao enviar planilha");
+      }
+
+      const importacaoId = dadosUpload.id;
+      setProgresso({
+        processadas: 0,
+        total: dadosUpload.totalLinhas ?? 0,
+        importados: 0,
+        ignorados: 0,
+      });
+
+      let concluida = false;
+      let importados = 0;
+      let ignorados = 0;
+
+      while (!concluida) {
+        const respostaLote = await fetch(
+          `/api/alunos/importar/${importacaoId}/processar`,
+          { method: "POST" },
+        );
+
+        const dadosLote = await respostaLote.json();
+
+        if (!respostaLote.ok) {
+          throw new Error(dadosLote.detail || "Erro ao processar importação");
+        }
+
+        importados = dadosLote.importados;
+        ignorados = dadosLote.ignorados;
+        concluida = dadosLote.concluida;
+
+        setProgresso({
+          processadas: dadosLote.processadas,
+          total: dadosLote.totalLinhas,
+          importados,
+          ignorados,
+        });
+      }
+
+      toast.push({
+        variant: ignorados > 0 ? "default" : "success",
+        title: "Importação concluída",
+        description: `${importados} aluno(s) importado(s)${
+          ignorados > 0 ? ` · ${ignorados} ignorado(s)` : ""
+        }.`,
+      });
+
+      fecharModalImportar();
+
+      await carregarDados();
+    } catch (err) {
+      toast.push({
+        variant: "destructive",
+        title: "Falha na importação",
+        description:
+          err instanceof Error ? err.message : "Erro ao enviar planilha",
+      });
+    } finally {
+      setImportando(false);
     }
-
-    toast.push({
-  title: "CSV enviado com sucesso",
-  description: data.mensagem || "Arquivo recebido pelo servidor.",
-});
-
-    fecharModalImportar();
-
-    await carregarDados();
-  } catch (err) {
-    toast.push({
-      variant: "destructive",
-      title: "Falha ao enviar CSV",
-      description:
-        err instanceof Error ? err.message : "Erro ao enviar planilha",
-    });
   }
-}
 
   function formatarData(iso: string): string {
     try {
@@ -257,33 +309,71 @@ export default function AlunosPage() {
               </p>
             </div>
 
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/20 bg-white/[0.03] px-4 py-8 text-center hover:bg-white/[0.05]">
-              <span className="text-sm font-medium text-white">
-                Clique para selecionar a planilha
-              </span>
-              <span className="mt-1 text-xs text-white/40">
-                Apenas arquivos .csv
-              </span>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={aoSelecionarArquivo}
-                className="hidden"
-              />
-            </label>
+            {progresso ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-5">
+                <div className="flex items-center justify-between text-xs text-white/60">
+                  <span>Importando alunos...</span>
+                  <span className="font-mono tabular-nums">
+                    {progresso.processadas}/{progresso.total}
+                  </span>
+                </div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className="h-full rounded-full bg-amber-400 transition-all"
+                    style={{
+                      width: `${
+                        progresso.total > 0
+                          ? Math.round(
+                              (progresso.processadas / progresso.total) * 100,
+                            )
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-3 flex gap-4 text-xs">
+                  <span className="text-emerald-300">
+                    {progresso.importados} importados
+                  </span>
+                  <span className="text-rose-300">
+                    {progresso.ignorados} ignorados
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/20 bg-white/[0.03] px-4 py-8 text-center hover:bg-white/[0.05]">
+                  <span className="text-sm font-medium text-white">
+                    Clique para selecionar a planilha
+                  </span>
+                  <span className="mt-1 text-xs text-white/40">
+                    Apenas arquivos .csv
+                  </span>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={aoSelecionarArquivo}
+                    className="hidden"
+                  />
+                </label>
 
-            {arquivoCsv && (
-              <p className="mt-3 rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-white/70">
-                Arquivo selecionado:{" "}
-                <span className="font-medium text-white">{arquivoCsv.name}</span>
-              </p>
+                {arquivoCsv && (
+                  <p className="mt-3 rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-white/70">
+                    Arquivo selecionado:{" "}
+                    <span className="font-medium text-white">
+                      {arquivoCsv.name}
+                    </span>
+                  </p>
+                )}
+              </>
             )}
 
             <div className="mt-6 flex justify-end gap-2">
               <Button
                 type="button"
                 onClick={fecharModalImportar}
-                className="h-9 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white hover:bg-white/[0.08]"
+                disabled={importando}
+                className="h-9 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancelar
               </Button>
@@ -291,10 +381,10 @@ export default function AlunosPage() {
               <Button
                 type="button"
                 onClick={enviarPlanilha}
-                disabled={!arquivoCsv}
+                disabled={!arquivoCsv || importando}
                 className="h-9 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-[#0c1a33] hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Enviar Planilha
+                {importando ? "Importando..." : "Enviar Planilha"}
               </Button>
             </div>
           </div>

@@ -12,7 +12,6 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const componenteId = searchParams.get("componenteId");
-
   if (!componenteId) {
     return NextResponse.json(
       { detail: "Parâmetro componenteId obrigatório" },
@@ -20,17 +19,18 @@ export async function GET(request: Request) {
     );
   }
 
+  const params = new URLSearchParams({ componenteId });
+  const assuntoId = searchParams.get("assuntoId");
+  const dificuldade = searchParams.get("dificuldade");
+  if (assuntoId) params.set("assuntoId", assuntoId);
+  if (dificuldade) params.set("dificuldade", dificuldade);
+
   try {
-    const upstream = await fetch(
-      `${API_URL}/simulados/banco?componenteId=${encodeURIComponent(componenteId)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      },
-    );
+    const upstream = await fetch(`${API_URL}/simulados/banco?${params.toString()}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
 
     const body = await upstream.json().catch(() => null);
     return NextResponse.json(body, { status: upstream.status });

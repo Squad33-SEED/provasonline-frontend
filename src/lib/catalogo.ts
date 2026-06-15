@@ -1,10 +1,43 @@
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiDelete, apiGet, apiPost } from "@/lib/api-client";
 import type {
   Aluno,
   AlunoCriado,
   Catalogo,
   Turma,
 } from "@/lib/types";
+
+export type ProfessorResumo = {
+  id: string;
+  nome: string;
+  cpf: string;
+  especialidade: string | null;
+};
+
+export async function getProfessores(): Promise<ProfessorResumo[]> {
+  return apiGet<ProfessorResumo[]>("/api/professores");
+}
+
+export async function getProfessoresDaTurma(
+  turmaId: string,
+): Promise<ProfessorResumo[]> {
+  return apiGet<ProfessorResumo[]>(`/api/turmas/${turmaId}/professores`);
+}
+
+export async function vincularProfessor(
+  turmaId: string,
+  professorId: string,
+): Promise<ProfessorResumo> {
+  return apiPost<ProfessorResumo>(`/api/turmas/${turmaId}/professores`, {
+    professorId,
+  });
+}
+
+export async function desvincularProfessor(
+  turmaId: string,
+  professorId: string,
+): Promise<void> {
+  return apiDelete<void>(`/api/turmas/${turmaId}/professores/${professorId}`);
+}
 
 export type TurmaCreatePayload = {
   nome: string;
@@ -20,6 +53,9 @@ export type AlunoCreatePayload = {
   dataNascimento: string;
   necessidadeEspecial: boolean;
   turmaId: string | null;
+  tipoCandidato?: "REGULAR" | "EXTERNO";
+  prereqValidado?: boolean;
+  prereqDocumento?: string | null;
 };
 
 export async function getCatalogo(): Promise<Catalogo> {

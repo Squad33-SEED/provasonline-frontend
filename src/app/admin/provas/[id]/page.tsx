@@ -6,15 +6,120 @@ import Link from "next/link";
 
 import { PageHeader, Panel, Tag } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { getSimulados } from "@/lib/simulados";
+import { useToast } from "@/components/feedback/toast-provider";
+import { getRelatorioEtapa, getSimulados, type RelatorioEtapa } from "@/lib/simulados";
+import { isApiClientError } from "@/lib/api-client";
 import type { Simulado } from "@/lib/types";
+
+function csvCampo(v: string | number | null): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function numBr(n: number | null): string {
+  return n === null || n === undefined ? "" : String(n).replace(".", ",");
+}
+
+function dataBr(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString("pt-BR");
+  } catch {
+    return iso;
+  }
+}
+
+function montarCsv(rel: RelatorioEtapa): string {
+  const linhas: string[] = [];
+  linhas.push(["Etapa", rel.titulo].map(csvCampo).join(";"));
+  linhas.push(["Componente", rel.componente].map(csvCampo).join(";"));
+  linhas.push(["Total de alunos", rel.totalAlunos].map(csvCampo).join(";"));
+  linhas.push(["Finalizados", rel.finalizados].map(csvCampo).join(";"));
+  linhas.push(["Média geral", numBr(rel.mediaNota)].map(csvCampo).join(";"));
+  linhas.push(["% acerto médio", numBr(rel.percentualAcerto)].map(csvCampo).join(";"));
+  linhas.push("");
+  linhas.push(
+    ["Nome", "CPF", "Turma", "Nota", "Acertos", "Status", "Finalizado em"]
+      .map(csvCampo)
+      .join(";"),
+  );
+  for (const i of rel.itens) {
+    const acertos = i.acertos === null ? "" : `${i.acertos}/${i.total}`;
+    linhas.push(
+      [
+        i.alunoNome,
+        i.alunoCpf,
+        i.turma ?? "",
+        numBr(i.nota),
+        acertos,
+        i.statusResultado,
+        dataBr(i.finalizadoEm),
+      ]
+        .map(csvCampo)
+        .join(";"),
+    );
+  }
+  return linhas.join("\r\n");
+}
+
+function baixarCsv(nomeArquivo: string, conteudo: string) {
+  const blob = new Blob(["﻿" + conteudo], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomeArquivo;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function nomeArquivo(titulo: string): string {
+  const slug = titulo
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+  const data = new Date().toISOString().slice(0, 10);
+  return `relatorio_${slug || "etapa"}_${data}.csv`;
+}
 
 export default function DetalheEtapaPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
   const [simulado, setSimulado] = React.useState<Simulado | null>(null);
   const [carregando, setCarregando] = React.useState(true);
   const [erro, setErro] = React.useState<string | null>(null);
+  const [gerando, setGerando] = React.useState(false);
+
+  async function gerarRelatorio() {
+    setGerando(true);
+    try {
+      const rel = await getRelatorioEtapa(id);
+      baixarCsv(nomeArquivo(rel.titulo), montarCsv(rel));
+      toast.push({
+        variant: "success",
+        title: "Relatório gerado",
+        description: `${rel.totalAlunos} aluno(s) · ${rel.finalizados} finalizado(s).`,
+      });
+    } catch (err) {
+      const detail = isApiClientError(err)
+        ? err.detail
+        : "Erro ao gerar relatório";
+      toast.push({
+        variant: "destructive",
+        title: "Falha ao gerar relatório",
+        description: detail,
+      });
+    } finally {
+      setGerando(false);
+    }
+  }
 
   React.useEffect(() => {
     getSimulados()
@@ -33,14 +138,23 @@ export default function DetalheEtapaPage() {
         title={simulado?.titulo ?? "Detalhes da etapa"}
         description="Configuração completa da etapa publicada"
         action={
-          <Link href="/admin/provas">
+          <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              className="text-white/70 hover:bg-white/[0.05] hover:text-white"
+              onClick={gerarRelatorio}
+              disabled={gerando || !simulado}
+              className="h-9 rounded-lg bg-amber-400 px-4 text-sm font-semibold text-[#0c1a33] hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              ← Voltar
+              {gerando ? "Gerando..." : "Gerar relatório (CSV)"}
             </Button>
-          </Link>
+            <Link href="/admin/provas">
+              <Button
+                variant="ghost"
+                className="text-white/70 hover:bg-white/[0.05] hover:text-white"
+              >
+                ← Voltar
+              </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -160,7 +274,22 @@ export default function DetalheEtapaPage() {
                   Vagas
                 </p>
                 <p className="text-2xl font-semibold tabular-nums text-white">
+                  <span className={simulado.totalInscritos > 0 ? "text-amber-300" : ""}>
+                    {simulado.totalInscritos}
+                  </span>
+                  <span className="text-white/30"> / </span>
                   {simulado.vagas}
+                </p>
+                <p
+                  className={`mt-2 text-[10px] ${
+                    simulado.vagasDisponiveis <= 0
+                      ? "text-rose-400/70"
+                      : "text-white/40"
+                  }`}
+                >
+                  {simulado.vagasDisponiveis <= 0
+                    ? "Vagas esgotadas"
+                    : `${simulado.vagasDisponiveis} disponíveis`}
                 </p>
               </Panel>
             </div>

@@ -178,6 +178,10 @@ function LinhaSimulado({ simulado }: { simulado: Simulado }) {
       </td>
       <td className="px-4 py-3 text-xs text-white/70">{janela}</td>
       <td className="px-4 py-3 text-right tabular-nums text-white/70">
+        <span className={simulado.totalInscritos > 0 ? "text-amber-300" : ""}>
+          {simulado.totalInscritos}
+        </span>
+        <span className="text-white/30"> / </span>
         {simulado.vagas}
       </td>
       <td className="px-4 py-3 text-right">

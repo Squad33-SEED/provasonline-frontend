@@ -8,7 +8,12 @@ export type PassoIdentificacaoState = {
   descricao: string;
   componenteId: string;
   componenteNome: string;
+  componenteIds: string[];
+  componentesNomes: string[];
   turmaIds: string[];
+  geraCertificado: boolean;
+  nivelEnsinoId: string;
+  notaMinimaCertificacao: string;
 };
 
 export type PassoJanelaState = {
@@ -20,10 +25,15 @@ export type PassoJanelaState = {
   horaFim: string;
 };
 
+export type ModoComposicao = "SORTEIO" | "MANUAL";
+
 export type PassoComposicaoState = {
+  modo: ModoComposicao;
   qtdFacil: number;
   qtdMedio: number;
   qtdDificil: number;
+  questaoIds: string[];
+  embaralharAlternativas: boolean;
 };
 
 export type WizardState = {
@@ -39,18 +49,23 @@ export type WizardState = {
 };
 
 export type WizardAction =
-  | { type: "ATUALIZAR_PASSO_1"; campo: keyof PassoIdentificacaoState; valor: string }
+  | { type: "ATUALIZAR_PASSO_1"; campo: "titulo" | "descricao" | "nivelEnsinoId" | "notaMinimaCertificacao"; valor: string }
+  | { type: "SET_GERA_CERTIFICADO"; valor: boolean }
   | { type: "SELECIONAR_COMPONENTE"; id: string; nome: string }
   | { type: "TOGGLE_TURMA"; turmaId: string }
   | { type: "ATUALIZAR_PASSO_2"; campo: keyof PassoJanelaState; valor: string }
-  | { type: "ATUALIZAR_PASSO_3"; campo: keyof PassoComposicaoState; valor: number }
+  | { type: "ATUALIZAR_PASSO_3"; campo: "qtdFacil" | "qtdMedio" | "qtdDificil"; valor: number }
+  | { type: "SET_MODO_COMPOSICAO"; modo: ModoComposicao }
+  | { type: "TOGGLE_QUESTAO"; questaoId: string }
+  | { type: "SET_EMBARALHAR"; valor: boolean }
   | { type: "AVANCAR" }
   | { type: "VOLTAR" }
   | { type: "SET_COMPONENTES"; componentes: ComponenteCatalogo[] }
   | { type: "INICIAR_LOAD_COMPONENTES" }
   | { type: "INICIAR_LOAD_DISPONIBILIDADE" }
   | { type: "SET_DISPONIBILIDADE"; disponibilidade: Disponibilidade }
-  | { type: "ERRO_SUBMIT"; mensagem: string }
+  | { type: "ERRO_SUBMIT"; mensagem: string }| 
+    { type: "TOGGLE_COMPONENTE"; id: string; nome: string }
   | { type: "LIMPAR_ERRO" };
 
 const ESTADO_INICIAL: WizardState = {
@@ -60,7 +75,12 @@ const ESTADO_INICIAL: WizardState = {
     descricao: "",
     componenteId: "",
     componenteNome: "",
+    componenteIds: [],
+    componentesNomes: [],
     turmaIds: [],
+    geraCertificado: false,
+    nivelEnsinoId: "",
+    notaMinimaCertificacao: "6.0",
   },
   passo2: {
     vagas: "100",
@@ -71,9 +91,12 @@ const ESTADO_INICIAL: WizardState = {
     horaFim: "18:00",
   },
   passo3: {
+    modo: "SORTEIO",
     qtdFacil: 0,
     qtdMedio: 0,
     qtdDificil: 0,
+    questaoIds: [],
+    embaralharAlternativas: false,
   },
   disponibilidade: null,
   carregandoDisponibilidade: false,
@@ -90,17 +113,67 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
         passo1: { ...state.passo1, [action.campo]: action.valor },
       };
 
-    case "SELECIONAR_COMPONENTE":
+    case "SET_GERA_CERTIFICADO":
       return {
         ...state,
         passo1: {
           ...state.passo1,
-          componenteId: action.id,
-          componenteNome: action.nome,
+          geraCertificado: action.valor,
+          nivelEnsinoId: action.valor ? state.passo1.nivelEnsinoId : "",
         },
-        disponibilidade: null,
-        passo3: { qtdFacil: 0, qtdMedio: 0, qtdDificil: 0 },
       };
+
+    case "SELECIONAR_COMPONENTE":
+      return {
+      ...state,
+      passo1: {
+      ...state.passo1,
+      componenteId: action.id,
+      componenteNome: action.nome,
+      componenteIds: [action.id],
+      componentesNomes: [action.nome],
+      },
+      disponibilidade: null,
+      passo3: {
+      ...state.passo3,
+      qtdFacil: 0,
+      qtdMedio: 0,
+      qtdDificil: 0,
+      questaoIds: [],
+    },
+  };
+case "TOGGLE_COMPONENTE": {
+  const ids = state.passo1.componenteIds;
+  const nomes = state.passo1.componentesNomes;
+  const jaExiste = ids.includes(action.id);
+
+  const novosIds = jaExiste
+    ? ids.filter((id) => id !== action.id)
+    : [...ids, action.id];
+
+  const novosNomes = jaExiste
+    ? nomes.filter((nome) => nome !== action.nome)
+    : [...nomes, action.nome];
+
+  return {
+    ...state,
+    passo1: {
+      ...state.passo1,
+      componenteIds: novosIds,
+      componentesNomes: novosNomes,
+      componenteId: novosIds[0] ?? "",
+      componenteNome: novosNomes[0] ?? "",
+    },
+    disponibilidade: null,
+    passo3: {
+      ...state.passo3,
+      qtdFacil: 0,
+      qtdMedio: 0,
+      qtdDificil: 0,
+      questaoIds: [],
+    },
+  };
+}
 
     case "TOGGLE_TURMA": {
       const ids = state.passo1.turmaIds;
@@ -126,6 +199,32 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       return {
         ...state,
         passo3: { ...state.passo3, [action.campo]: action.valor },
+      };
+
+    case "SET_MODO_COMPOSICAO":
+      return {
+        ...state,
+        passo3: { ...state.passo3, modo: action.modo },
+      };
+
+    case "TOGGLE_QUESTAO": {
+      const ids = state.passo3.questaoIds;
+      const jaExiste = ids.includes(action.questaoId);
+      return {
+        ...state,
+        passo3: {
+          ...state.passo3,
+          questaoIds: jaExiste
+            ? ids.filter((id) => id !== action.questaoId)
+            : [...ids, action.questaoId],
+        },
+      };
+    }
+
+    case "SET_EMBARALHAR":
+      return {
+        ...state,
+        passo3: { ...state.passo3, embaralharAlternativas: action.valor },
       };
 
     case "AVANCAR": {
@@ -177,7 +276,9 @@ export function useWizard() {
 
 export function passo1Valido(state: WizardState): boolean {
   const titulo = state.passo1.titulo.trim();
-  return titulo.length >= 3 && state.passo1.componenteId.length > 0;
+  if (titulo.length < 3 || state.passo1.componenteIds.length === 0) return false;
+  if (state.passo1.geraCertificado && !state.passo1.nivelEnsinoId) return false;
+  return true;
 }
 
 export function passo2Valido(state: WizardState): boolean {
@@ -200,16 +301,20 @@ export function passo2Valido(state: WizardState): boolean {
 }
 
 export function passo3Valido(state: WizardState): boolean {
-  const { qtdFacil, qtdMedio, qtdDificil } = state.passo3;
-  const total = qtdFacil + qtdMedio + qtdDificil;
+  const p = state.passo3;
 
+  if (p.modo === "MANUAL") {
+    return p.questaoIds.length >= 1;
+  }
+
+  const total = p.qtdFacil + p.qtdMedio + p.qtdDificil;
   if (total < 1) return false;
   if (!state.disponibilidade) return false;
 
   return (
-    qtdFacil <= state.disponibilidade.facil &&
-    qtdMedio <= state.disponibilidade.medio &&
-    qtdDificil <= state.disponibilidade.dificil
+    p.qtdFacil <= state.disponibilidade.facil &&
+    p.qtdMedio <= state.disponibilidade.medio &&
+    p.qtdDificil <= state.disponibilidade.dificil
   );
 }
 
@@ -230,17 +335,27 @@ export function montarPayloadSubmit(state: WizardState) {
 
   if (!inicio || !fim) return null;
 
+  const manual = state.passo3.modo === "MANUAL";
+
   return {
     titulo: state.passo1.titulo.trim(),
     descricao: state.passo1.descricao.trim() || null,
-    componenteId: state.passo1.componenteId,
-    qtdFacil: state.passo3.qtdFacil,
-    qtdMedio: state.passo3.qtdMedio,
-    qtdDificil: state.passo3.qtdDificil,
+    componenteId: state.passo1.componenteIds[0],
+    componenteIds: state.passo1.componenteIds,
+    qtdFacil: manual ? 0 : state.passo3.qtdFacil,
+    qtdMedio: manual ? 0 : state.passo3.qtdMedio,
+    qtdDificil: manual ? 0 : state.passo3.qtdDificil,
     vagas: parseInt(state.passo2.vagas, 10),
     duracaoMinutos: parseInt(state.passo2.duracaoMinutos, 10),
     janelaInicio: inicio.toISOString(),
     janelaFim: fim.toISOString(),
     turmaIds: state.passo1.turmaIds,
+    questaoIds: manual ? state.passo3.questaoIds : [],
+    embaralharAlternativas: state.passo3.embaralharAlternativas,
+    geraCertificado: state.passo1.geraCertificado,
+    nivelEnsinoId: state.passo1.geraCertificado ? state.passo1.nivelEnsinoId : null,
+    notaMinimaCertificacao: state.passo1.geraCertificado
+      ? parseFloat(state.passo1.notaMinimaCertificacao.replace(",", ".")) || 6.0
+      : null,
   };
 }
