@@ -17,11 +17,24 @@ export async function getNiveis(): Promise<NivelCatalogo[]> {
 }
 
 export async function getDisponibilidade(
-  componenteId: string,
+  componenteIds: string | string[],
 ): Promise<Disponibilidade> {
-  return apiGet<Disponibilidade>(
-    `/api/simulados/disponibilidade?componenteId=${encodeURIComponent(componenteId)}`,
+  const ids = Array.isArray(componenteIds) ? componenteIds : [componenteIds];
+
+  const listas = await Promise.all(
+    ids.map((id) =>
+      apiGet<Disponibilidade>(
+        `/api/simulados/disponibilidade?componenteId=${encodeURIComponent(id)}`,
+      ),
+    ),
   );
+
+  return {
+    componenteId: ids[0] ?? "",
+    facil: listas.reduce((total, item) => total + item.facil, 0),
+    medio: listas.reduce((total, item) => total + item.medio, 0),
+    dificil: listas.reduce((total, item) => total + item.dificil, 0),
+  };
 }
 
 export async function getSimulados(): Promise<Simulado[]> {
@@ -47,11 +60,19 @@ export interface QuestaoBanco {
 }
 
 export async function getBancoQuestoesAdmin(
-  componenteId: string,
+  componenteIds: string | string[],
 ): Promise<QuestaoBanco[]> {
-  return apiGet<QuestaoBanco[]>(
-    `/api/simulados/banco?componenteId=${encodeURIComponent(componenteId)}`,
+  const ids = Array.isArray(componenteIds) ? componenteIds : [componenteIds];
+
+  const listas = await Promise.all(
+    ids.map((id) =>
+      apiGet<QuestaoBanco[]>(
+        `/api/simulados/banco?componenteId=${encodeURIComponent(id)}`,
+      ),
+    ),
   );
+
+  return listas.flat();
 }
 
 export interface RelatorioItemAluno {

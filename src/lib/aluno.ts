@@ -12,6 +12,8 @@ export interface EtapaDisponivel {
   duracaoMinutos: number
   totalQuestoes: number
   vagas: number
+  vagasTotais: number
+  vagasDisponiveis: number
   janelaInicio: string
   janelaFim: string
   ativa: boolean
@@ -186,5 +188,18 @@ export async function registrarViolacao(
     body: JSON.stringify({ tipo, detalhe }),
   })
   if (!res.ok) return { registrada: false, totalViolacoes: 0 }
+  return res.json()
+}
+
+export interface ProvaEmAndamento {
+  emAndamento: boolean
+  simuladoId: string | null
+  resultadoId: string | null
+  expiraEm: string | null
+}
+
+export async function getProvaEmAndamento(): Promise<ProvaEmAndamento> {
+  const res = await fetch("/api/aluno/prova-em-andamento", { cache: "no-store" })
+  if (!res.ok) return { emAndamento: false, simuladoId: null, resultadoId: null, expiraEm: null }
   return res.json()
 }
