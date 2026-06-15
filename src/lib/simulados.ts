@@ -3,6 +3,8 @@ import type {
   ComponenteCatalogo,
   Disponibilidade,
   NivelCatalogo,
+  ProfessorQuestaoItem,
+  QuestaoBanco,
   Simulado,
   SimuladoCreatePayload,
   Turma,
@@ -10,6 +12,22 @@ import type {
 
 export async function getComponentes(): Promise<ComponenteCatalogo[]> {
   return apiGet<ComponenteCatalogo[]>("/api/catalogo/componentes");
+}
+
+export async function getBancoQuestoes(
+  componenteId: string,
+): Promise<QuestaoBanco[]> {
+  return apiGet<QuestaoBanco[]>(
+    `/api/simulados/banco?componenteId=${encodeURIComponent(componenteId)}`,
+  );
+}
+
+export async function getBancoQuestoesProfessor(
+  componenteId: string,
+): Promise<ProfessorQuestaoItem[]> {
+  return apiGet<ProfessorQuestaoItem[]>(
+    `/api/professor/questoes?componenteId=${encodeURIComponent(componenteId)}`,
+  );
 }
 
 export async function getNiveis(): Promise<NivelCatalogo[]> {
@@ -51,13 +69,7 @@ export async function criarSimulado(
   return apiPost<Simulado>("/api/simulados", payload);
 }
 
-export interface QuestaoBanco {
-  id: string;
-  enunciado: string;
-  assunto: string;
-  dificuldade: "FACIL" | "MEDIO" | "DIFICIL";
-  componenteId: string;
-}
+export type { QuestaoBanco };
 
 export async function getBancoQuestoesAdmin(
   componenteIds: string | string[],

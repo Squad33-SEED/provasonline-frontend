@@ -1,120 +1,93 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader, Panel, Stat, Tag } from "@/components/app-shell";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/feedback/toast-provider";
-import { isApiClientError } from "@/lib/api-client";
-import {
-  getComponentesQuestao,
-  getQuestoes,
-  toggleQuestao,
-  type ComponenteOpcao,
-  type QuestaoListItem,
-} from "@/lib/questoes";
+import { getComponentes, getBancoQuestoes } from "@/lib/simulados";
+import type { ComponenteCatalogo, QuestaoBanco } from "@/lib/types";
 
 const dificuldadeTone = (d: string) =>
   d === "FACIL" ? "emerald" : d === "MEDIO" ? "amber" : "rose";
 
 export default function BancoQuestoesAdmin() {
-  const toast = useToast();
+  const [componentes, setComponentes] = useState<ComponenteCatalogo[]>([]);
+  const [componenteId, setComponenteId] = useState<string | null>(null);
+  const [questoes, setQuestoes] = useState<QuestaoBanco[]>([]);
+  const [busca, setBusca] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const [questoes, setQuestoes] = React.useState<QuestaoListItem[]>([]);
-  const [componentes, setComponentes] = React.useState<ComponenteOpcao[]>([]);
-  const [filtroComp, setFiltroComp] = React.useState("");
-  const [carregando, setCarregando] = React.useState(true);
-  const [erroCarga, setErroCarga] = React.useState<string | null>(null);
-  const [alternandoId, setAlternandoId] = React.useState<string | null>(null);
-
-  const carregar = React.useCallback(
-    async (componenteId: string) => {
-      setCarregando(true);
-      setErroCarga(null);
-      try {
-        setQuestoes(
-          await getQuestoes(componenteId ? { componenteId } : undefined),
-        );
-      } catch (err) {
-        const detail = isApiClientError(err)
-          ? err.detail
-          : "Erro ao carregar questões";
-        setErroCarga(detail);
-      } finally {
+  useEffect(() => {
+    getComponentes()
+      .then((cs) => {
+        setComponentes(cs);
+        if (cs.length > 0) {
+          setComponenteId(cs[0].id);
+        } else {
+          setCarregando(false);
+        }
+      })
+      .catch(() => {
+        setErro("Falha ao carregar os componentes.");
         setCarregando(false);
-      }
-    },
-    [],
-  );
-
-  React.useEffect(() => {
-    void (async () => {
-      try {
-        setComponentes(await getComponentesQuestao());
-      } catch {
-        setComponentes([]);
-      }
-    })();
+      });
   }, []);
 
-  React.useEffect(() => {
-    void carregar(filtroComp);
-  }, [carregar, filtroComp]);
+  useEffect(() => {
+    if (!componenteId) return;
+    setCarregando(true);
+    setErro(null);
+    getBancoQuestoes(componenteId)
+      .then(setQuestoes)
+      .catch((e: { detail?: string }) =>
+        setErro(e?.detail ?? "Falha ao carregar as questões."),
+      )
+      .finally(() => setCarregando(false));
+  }, [componenteId]);
 
-  async function alternar(id: string) {
-    setAlternandoId(id);
-    try {
-      const atualizada = await toggleQuestao(id);
-      setQuestoes((prev) =>
-        prev.map((q) => (q.id === id ? { ...q, ativa: atualizada.ativa } : q)),
-      );
-      toast.push({
-        title: atualizada.ativa ? "Questão reativada" : "Questão desativada",
-      });
-    } catch (err) {
-      const detail = isApiClientError(err)
-        ? err.detail
-        : "Erro ao alterar a questão";
-      toast.push({
-        variant: "destructive",
-        title: "Não foi possível alterar",
-        description: detail,
-      });
-    } finally {
-      setAlternandoId(null);
-    }
-  }
+  const contagem = useMemo(() => {
+    return {
+      total: questoes.length,
+      facil: questoes.filter((q) => q.dificuldade === "FACIL").length,
+      medio: questoes.filter((q) => q.dificuldade === "MEDIO").length,
+      dificil: questoes.filter((q) => q.dificuldade === "DIFICIL").length,
+    };
+  }, [questoes]);
 
-  const total = questoes.length;
-  const faceis = questoes.filter((q) => q.dificuldade === "FACIL").length;
-  const medias = questoes.filter((q) => q.dificuldade === "MEDIO").length;
-  const dificeis = questoes.filter((q) => q.dificuldade === "DIFICIL").length;
-
-  const filtros = [{ id: "", nome: "Todos" }, ...componentes];
+  const filtradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return questoes;
+    return questoes.filter((q) => q.enunciado.toLowerCase().includes(termo));
+  }, [questoes, busca]);
 
   return (
     <>
       <PageHeader
         title="Banco de questões"
-        description="Visão consolidada de todas as questões cadastradas no sistema"
+        description="Acervo da API Questions (questions.zenixcode.cloud) por componente"
       />
 
       <section className="grid grid-cols-4 gap-4 px-8 py-6">
-        <Stat label="Total de questões" value={total} accent="amber" hint="Conforme o filtro" />
-        <Stat label="Fáceis" value={faceis} accent="emerald" />
-        <Stat label="Médias" value={medias} accent="amber" />
-        <Stat label="Difíceis" value={dificeis} accent="rose" />
+        <Stat
+          label="Total de questões"
+          value={contagem.total}
+          accent="amber"
+          hint="Componente selecionado"
+        />
+        <Stat label="Fáceis" value={contagem.facil} accent="emerald" />
+        <Stat label="Médias" value={contagem.medio} accent="amber" />
+        <Stat label="Difíceis" value={contagem.dificil} accent="rose" />
       </section>
 
       <section className="px-8 pb-8">
         <Panel>
           <div className="flex items-center justify-between pb-4">
             <div className="flex flex-wrap items-center gap-2">
-              {filtros.map((c) => (
+              {componentes.map((c) => (
                 <button
-                  key={c.id || "todos"}
-                  onClick={() => setFiltroComp(c.id)}
+                  key={c.id}
+                  onClick={() => setComponenteId(c.id)}
                   className={
-                    filtroComp === c.id
+                    c.id === componenteId
                       ? "rounded-lg bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-200 ring-1 ring-amber-400/20"
                       : "rounded-lg border border-white/10 bg-white/[0.02] px-3 py-1.5 text-xs text-white/60 hover:bg-white/[0.05] hover:text-white"
                   }
@@ -123,50 +96,45 @@ export default function BancoQuestoesAdmin() {
                 </button>
               ))}
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
-              {carregando ? "carregando…" : `${total} questões`}
-            </span>
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-1.5">
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar no enunciado"
+                className="w-56 bg-transparent text-xs text-white placeholder:text-white/30 focus:outline-none"
+              />
+            </div>
           </div>
 
           {carregando ? (
-            <p className="px-1 py-10 text-center text-sm text-white/40">Carregando questões...</p>
-          ) : erroCarga ? (
-            <p className="px-1 py-10 text-center text-sm text-rose-300">{erroCarga}</p>
-          ) : questoes.length === 0 ? (
-            <p className="px-1 py-10 text-center text-sm text-white/40">
-              Nenhuma questão cadastrada.
+            <p className="py-12 text-center text-sm text-white/40">
+              Carregando questões…
+            </p>
+          ) : erro ? (
+            <p className="py-12 text-center text-sm text-rose-300">{erro}</p>
+          ) : filtradas.length === 0 ? (
+            <p className="py-12 text-center text-sm text-white/40">
+              Nenhuma questão encontrada para este componente.
             </p>
           ) : (
             <ul className="flex flex-col gap-2.5">
-              {questoes.map((q) => (
+              {filtradas.map((q) => (
                 <li
                   key={q.id}
                   className="flex items-start justify-between gap-4 rounded-lg border border-white/10 bg-white/[0.02] p-4"
                 >
                   <div className="flex flex-1 flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      <Tag tone={dificuldadeTone(q.dificuldade)}>{q.dificuldade}</Tag>
-                      <Tag tone="blue">{q.componente}</Tag>
+                      <Tag tone={dificuldadeTone(q.dificuldade)}>
+                        {q.dificuldade}
+                      </Tag>
                       <Tag tone="slate">{q.assunto}</Tag>
-                      {!q.ativa && <Tag tone="rose">inativa</Tag>}
+                      <span className="font-mono text-[10px] text-white/30">
+                        {q.id}
+                      </span>
                     </div>
                     <p className="text-sm text-white/80">{q.enunciado}</p>
-                    <p className="text-xs text-white/40">
-                      {q.totalAlternativas} alternativas · 1 correta · Autor: {q.professorNome}
-                    </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    disabled={alternandoId === q.id}
-                    onClick={() => alternar(q.id)}
-                    className="h-7 rounded-lg px-2.5 text-xs text-white/60 hover:bg-white/[0.05] hover:text-white disabled:opacity-40"
-                  >
-                    {alternandoId === q.id
-                      ? "..."
-                      : q.ativa
-                        ? "Desativar"
-                        : "Reativar"}
-                  </Button>
                 </li>
               ))}
             </ul>
