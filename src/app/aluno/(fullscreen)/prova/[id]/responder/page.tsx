@@ -294,10 +294,23 @@ export default function ResponderProvaPage() {
                 Continuar
               </button>
               <button
-                onClick={async () => { setConfirmandoFinalizar(false); await executarAutoSave(); executarSubmit() }}
-                disabled={submetendo}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 font-semibold text-sm transition-colors"
-              >
+  onClick={async () => {
+    setConfirmandoFinalizar(false);
+
+    const itens = Object.entries(respostas).map(([questaoId, resposta]) => ({
+      questaoId,
+      resposta,
+    }));
+
+    if (itens.length > 0) {
+      await autoSaveRespostas(resultadoId, itens);
+    }
+
+    await executarSubmit();
+  }}
+  disabled={submetendo}
+  className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-zinc-950 font-semibold text-sm transition-colors"
+>
                 {submetendo ? "Enviando…" : "Confirmar"}
               </button>
             </div>
