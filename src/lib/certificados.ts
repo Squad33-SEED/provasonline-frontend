@@ -26,3 +26,9 @@ export type AproveitamentoNivel = {
   aprovados: number;
   componentes: ComponenteProgresso[];
 };
+
+export async function getCertificados(): Promise<CertificadoItem[]> {
+  const res = await fetch("/api/aluno/certificados", { cache: "no-store" });
+  if (!res.ok) throw new Error("Erro ao buscar certificados");
+  return res.json();
+}
