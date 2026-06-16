@@ -13,6 +13,7 @@ import {
   toggleIp,
   type IpAutorizado,
 } from "@/lib/ips";
+import { ConfirmDialog } from "@/components/dialogs/dialog-confirmacao";
 
 function formatarData(valor: string) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -39,6 +40,8 @@ export default function IPs() {
   const [erro, setErro] = useState<string | null>(null);
   const [formAberto, setFormAberto] = useState(false);
   const [editando, setEditando] = useState<IpAutorizado | null>(null);
+  const [confirmando, setConfirmando] = useState<IpAutorizado | null>(null);
+  const [alternando, setAlternando] = useState(false);
 
   const [ip, setIp] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -121,11 +124,15 @@ export default function IPs() {
 
   async function alternarStatus(item: IpAutorizado) {
     try {
+      setAlternando(true);
       setErro(null);
       await toggleIp(item.id);
       await carregarIps();
+      setConfirmando(null);
     } catch (error) {
       setErro(mensagemErro(error));
+    } finally {
+      setAlternando(false);
     }
   }
 
@@ -301,7 +308,7 @@ export default function IPs() {
 
                           <Button
                             type="button"
-                            onClick={() => alternarStatus(item)}
+                            onClick={() => setConfirmando(item)}
                             className="h-8 rounded-lg border border-white/10 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
                           >
                             {item.ativo ? "Desativar" : "Reativar"}
@@ -315,6 +322,31 @@ export default function IPs() {
           </div>
         </Panel>
       </section>
+
+      <ConfirmDialog
+        open={confirmando !== null}
+        onOpenChange={(aberto) => {
+          if (!aberto) setConfirmando(null);
+        }}
+        title={
+          confirmando?.ativo
+            ? "Desativar IP autorizado?"
+            : "Reativar IP autorizado?"
+        }
+        description={
+          confirmando
+            ? `Tem certeza que deseja ${
+                confirmando.ativo ? "desativar" : "reativar"
+              } o IP ${confirmando.ip}?`
+            : undefined
+        }
+        confirmLabel={confirmando?.ativo ? "Desativar" : "Reativar"}
+        destructive={confirmando?.ativo ?? false}
+        loading={alternando}
+        onConfirm={() => {
+          if (confirmando) alternarStatus(confirmando);
+        }}
+      />
     </>
   );
 }
