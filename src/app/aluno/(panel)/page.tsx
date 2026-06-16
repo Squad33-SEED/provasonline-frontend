@@ -12,26 +12,12 @@ import {
   getEtapasDisponiveis,
   getHistorico,
   getProvaEmAndamento,
+  getUsuarioLogado,
   type EtapaDisponivel,
   type HistoricoItem,
 } from "@/lib/aluno";
-
-const ultimas = [
-  {
-    id: "rt-988",
-    nome: "Simulado — Álgebra",
-    data: "14/04",
-    nota: 8.5,
-    acerto: 85,
-  },
-  {
-    id: "rt-964",
-    nome: "Avaliação — Funções",
-    data: "04/04",
-    nota: 7.2,
-    acerto: 72,
-  },
-];
+import { getHistoricoSimuladoLivre } from "@/lib/simulado-livre";
+import { getCertificados } from "@/lib/certificados";
 
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", {
@@ -52,6 +38,9 @@ export default function AlunoDashboard() {
 
   const [proximas, setProximas] = useState<EtapaDisponivel[]>([]);
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
+  const [nome, setNome] = useState("");
+  const [qtdSimuladosLivres, setQtdSimuladosLivres] = useState(0);
+  const [qtdCertificados, setQtdCertificados] = useState(0);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -66,10 +55,18 @@ export default function AlunoDashboard() {
       Promise.all([
         getEtapasDisponiveis(),
         getHistorico(),
+        getUsuarioLogado().catch(() => null),
+        getHistoricoSimuladoLivre().catch(() => []),
+        getCertificados().catch(() => []),
       ])
-        .then(([etapas, hist]) => {
+        .then(([etapas, hist, usuario, simulados, certificados]) => {
           setProximas(etapas);
           setHistorico(hist);
+          if (usuario) setNome(usuario.nome);
+          setQtdSimuladosLivres(
+            simulados.filter((s) => s.status === "FINALIZADO").length,
+          );
+          setQtdCertificados(certificados.length);
         })
         .finally(() => setCarregando(false));
     })
@@ -91,10 +88,16 @@ export default function AlunoDashboard() {
         ).toFixed(1)
       : "0.0";
 
+  const primeiroNome = nome.split(" ")[0] ?? "";
+
+  const ultimosResultados = [...resultadosFinalizados]
+    .sort((a, b) => (b.finalizadoEm ?? "").localeCompare(a.finalizadoEm ?? ""))
+    .slice(0, 4);
+
   return (
     <>
       <PageHeader
-        title="Olá, Lucas"
+        title={primeiroNome ? `Olá, ${primeiroNome}` : "Olá!"}
         description="Acompanhe suas provas agendadas e pratique com simulados livres"
         action={
           <Link href="/aluno/simulado">
@@ -123,16 +126,16 @@ export default function AlunoDashboard() {
 
         <Stat
           label="Simulados livres"
-          value={12}
+          value={qtdSimuladosLivres}
           accent="blue"
-          hint="Realizados este mês"
+          hint="Realizados"
         />
 
         <Stat
           label="Certificados"
-          value={2}
+          value={qtdCertificados}
           accent="amber"
-          hint="Disponíveis para download"
+          hint="Emitidos"
         />
       </section>
 
@@ -201,32 +204,42 @@ export default function AlunoDashboard() {
             Últimos resultados
           </h3>
 
-          <ul className="flex flex-col divide-y divide-white/5">
-            {ultimas.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center justify-between py-3 first:pt-0"
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm text-white">{r.nome}</span>
+          {ultimosResultados.length === 0 ? (
+            <p className="text-sm text-white/40">Nenhum resultado ainda.</p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-white/5">
+              {ultimosResultados.map((r) => {
+                const acerto =
+                  r.total > 0
+                    ? Math.round(((r.acertos ?? 0) / r.total) * 100)
+                    : 0;
+                return (
+                  <li
+                    key={r.resultadoId}
+                    className="flex items-center justify-between py-3 first:pt-0"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm text-white">{r.titulo}</span>
 
-                  <span className="font-mono text-xs text-white/40">
-                    {r.data}
-                  </span>
-                </div>
+                      <span className="font-mono text-xs text-white/40">
+                        {r.finalizadoEm ? formatarData(r.finalizadoEm) : ""}
+                      </span>
+                    </div>
 
-                <div className="flex flex-col items-end">
-                  <span className="font-mono text-base font-semibold text-amber-300 tabular-nums">
-                    {r.nota.toFixed(1)}
-                  </span>
+                    <div className="flex flex-col items-end">
+                      <span className="font-mono text-base font-semibold text-amber-300 tabular-nums">
+                        {(r.pontuacao ?? 0).toFixed(1)}
+                      </span>
 
-                  <span className="text-xs text-emerald-300">
-                    {r.acerto}% acertos
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+                      <span className="text-xs text-emerald-300">
+                        {acerto}% acertos
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Panel>
       </section>
     </>

@@ -117,6 +117,18 @@ export async function getEtapasDisponiveis(): Promise<EtapaDisponivel[]> {
   return res.json()
 }
 
+export interface UsuarioLogado {
+  id: string
+  nome: string
+  tipo: string
+}
+
+export async function getUsuarioLogado(): Promise<UsuarioLogado> {
+  const res = await fetch("/api/auth/me", { cache: "no-store" })
+  if (!res.ok) throw new Error("Erro ao buscar usuário")
+  return res.json()
+}
+
 export async function inscreverEmProva(simuladoId: string): Promise<{ inscrito: boolean; simuladoId: string }> {
   const res = await fetch(`/api/aluno/inscrever/${simuladoId}`, { method: "POST" })
   if (!res.ok) {

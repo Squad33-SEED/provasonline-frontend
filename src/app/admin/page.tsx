@@ -82,7 +82,12 @@ export default function AdminDashboard() {
           accent="emerald"
           hint={carregando ? "Carregando..." : "Etapas com janela encerrada"}
         />
-        <Stat label="Bloqueios de IP" value={2} accent="rose" hint="Tentativas fora da escola" />
+        <Stat
+          label="Em execução agora"
+          value={emExecucao.length}
+          accent="rose"
+          hint={carregando ? "Carregando..." : "Etapas sendo realizadas"}
+        />
       </section>
 
       <section className="px-8 pb-6">
