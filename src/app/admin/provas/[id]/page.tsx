@@ -201,11 +201,18 @@ export default function DetalheEtapaPage() {
             <div className="grid grid-cols-2 gap-4">
               <Panel>
                 <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-white/40 mb-4">
-                  Componente curricular
+                  {(simulado.componentes?.length ?? 0) > 1
+                    ? "Componentes curriculares"
+                    : "Componente curricular"}
                 </p>
-                <p className="text-sm font-medium text-white">
-                  {simulado.componente.nome}
-                </p>
+                {(simulado.componentes?.length
+                  ? simulado.componentes
+                  : [simulado.componente]
+                ).map((c) => (
+                  <p key={c.id} className="text-sm font-medium text-white">
+                    {c.nome}
+                  </p>
+                ))}
                 <p className="text-xs text-white/40 mt-0.5">
                   {simulado.componente.modalidade.nome}
                 </p>

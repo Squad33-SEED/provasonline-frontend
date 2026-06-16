@@ -92,6 +92,7 @@ export type Simulado = {
   titulo: string;
   descricao: string | null;
   componente: ComponenteCatalogo;
+  componentes?: ComponenteCatalogo[];
   qtdFacil: number;
   qtdMedio: number;
   qtdDificil: number;

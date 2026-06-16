@@ -151,7 +151,14 @@ function LinhaSimulado({ simulado }: { simulado: Simulado }) {
       </td>
       <td className="px-4 py-3 text-white/70">
         <div className="flex flex-col">
-          <span>{simulado.componente.nome}</span>
+          <span>
+            {(simulado.componentes?.length
+              ? simulado.componentes
+              : [simulado.componente]
+            )
+              .map((c) => c.nome)
+              .join(" · ")}
+          </span>
           <span className="text-[11px] text-white/40">
             {simulado.componente.modalidade.nome}
           </span>
