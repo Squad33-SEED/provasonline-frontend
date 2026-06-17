@@ -9,7 +9,7 @@ async function token() {
 export async function GET() {
   const t = await token();
   if (!t) return NextResponse.json([], { status: 401 });
-  const res = await fetch(`${API_URL}/catalogo/niveis`, {
+  const res = await fetch(`${API_URL}/catalogo/modalidades`, {
     headers: { Authorization: `Bearer ${t}` },
     cache: "no-store",
   });
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const t = await token();
   if (!t) return NextResponse.json({ detail: "Não autenticado" }, { status: 401 });
   const body = await req.json();
-  const res = await fetch(`${API_URL}/catalogo/niveis`, {
+  const res = await fetch(`${API_URL}/catalogo/modalidades`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
     body: JSON.stringify(body),
