@@ -69,6 +69,7 @@ export interface RelatorioEtapa {
   simuladoId: string;
   titulo: string;
   componente: string;
+  inscritos: number;
   totalAlunos: number;
   finalizados: number;
   mediaNota: number | null;
