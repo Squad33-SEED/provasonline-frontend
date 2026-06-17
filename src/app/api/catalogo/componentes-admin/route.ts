@@ -6,10 +6,11 @@ async function token() {
   return (await cookies()).get("seed_token")?.value;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const t = await token();
-  if (!t) return NextResponse.json([], { status: 401 });
-  const res = await fetch(`${API_URL}/catalogo/niveis`, {
+  if (!t) return NextResponse.json({ detail: "Não autenticado" }, { status: 401 });
+  const qs = req.nextUrl.search;
+  const res = await fetch(`${API_URL}/catalogo/componentes/admin${qs}`, {
     headers: { Authorization: `Bearer ${t}` },
     cache: "no-store",
   });
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   const t = await token();
   if (!t) return NextResponse.json({ detail: "Não autenticado" }, { status: 401 });
   const body = await req.json();
-  const res = await fetch(`${API_URL}/catalogo/niveis`, {
+  const res = await fetch(`${API_URL}/catalogo/componentes`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
     body: JSON.stringify(body),
