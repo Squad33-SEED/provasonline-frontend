@@ -39,8 +39,19 @@ export function getTurmasProfessor(): Promise<ProfessorTurma[]> {
   return getJson("/api/professor/turmas", "Erro ao carregar turmas")
 }
 
-export function getQuestoesProfessor(): Promise<ProfessorQuestao[]> {
-  return getJson("/api/professor/questoes", "Erro ao carregar questões")
+export async function getQuestoesProfessor(): Promise<ProfessorQuestao[]> {
+  // No modelo atual as questões vêm da API externa por componente, então o
+  // endpoint exige componenteId. Na visão geral do dashboard (sem componente
+  // selecionado) isso retorna 422 — tratamos como "sem questões" para não
+  // derrubar o dashboard inteiro.
+  try {
+    return await getJson<ProfessorQuestao[]>(
+      "/api/professor/questoes",
+      "Erro ao carregar questões",
+    )
+  } catch {
+    return []
+  }
 }
 
 export function getResultadosProfessor(): Promise<ProfessorResultadoEtapa[]> {
