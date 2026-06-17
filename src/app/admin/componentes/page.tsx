@@ -170,6 +170,18 @@ export default function ComponentesPage() {
 }
 
 
+const DISCIPLINAS_API: { slug: string; label: string }[] = [
+  { slug: "biologia", label: "Biologia" },
+  { slug: "fisica", label: "Física" },
+  { slug: "geografia", label: "Geografia" },
+  { slug: "historia", label: "História" },
+  { slug: "ingles", label: "Inglês" },
+  { slug: "matematica", label: "Matemática" },
+  { slug: "portugues", label: "Português" },
+  { slug: "quimica", label: "Química" },
+];
+
+
 function ModalComponente({
   editando,
   modalidades,
@@ -186,6 +198,9 @@ function ModalComponente({
   const [codigo, setCodigo] = React.useState(editando?.codigo ?? "");
   const [modalidadeId, setModalidadeId] = React.useState(
     editando?.modalidadeId ?? ""
+  );
+  const [subjectSlug, setSubjectSlug] = React.useState(
+    editando?.questionsSubjectSlug ?? ""
   );
   const [assuntos, setAssuntos] = React.useState<string[]>([]);
   const [novoAssunto, setNovoAssunto] = React.useState("");
@@ -219,6 +234,7 @@ function ModalComponente({
         await editarComponente(editando.id, {
           nome: nome.trim(),
           codigo: codigo.trim(),
+          questionsSubjectSlug: subjectSlug || null,
         });
       } else {
         await criarComponente({
@@ -226,6 +242,7 @@ function ModalComponente({
           nome: nome.trim(),
           codigo: codigo.trim(),
           assuntos,
+          questionsSubjectSlug: subjectSlug || null,
         });
       }
       toast.push({ title: editando ? "Componente atualizado" : "Componente criado" });
@@ -278,6 +295,26 @@ function ModalComponente({
               placeholder="Ex: MAT001"
               className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:outline-none"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-white/70">
+              Disciplina (banco de questões)
+            </label>
+            <select
+              value={subjectSlug}
+              onChange={(e) => setSubjectSlug(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white focus:outline-none"
+            >
+              <option value="">Sem vínculo</option>
+              {DISCIPLINAS_API.map((d) => (
+                <option key={d.slug} value={d.slug}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-white/40">
+              Necessário para montar etapas com questões da API.
+            </p>
           </div>
           {!editando && (
             <div>
