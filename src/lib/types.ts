@@ -56,6 +56,12 @@ export type ComponenteCatalogo = {
   modalidade: ModalidadeResumo;
 };
 
+export type NivelCatalogo = {
+  id: string;
+  nome: string;
+  ordem: number;
+};
+
 export type Disponibilidade = {
   componenteId: string;
   facil: number;
@@ -63,16 +69,37 @@ export type Disponibilidade = {
   dificil: number;
 };
 
+export type QuestaoBanco = {
+  id: string;
+  enunciado: string;
+  assunto: string;
+  dificuldade: string;
+  componenteId: string;
+};
+
+export type ProfessorQuestaoItem = {
+  id: string;
+  enunciado: string;
+  componente: string;
+  assunto: string;
+  dificuldade: string;
+  ativa: boolean;
+  totalAlternativas: number;
+};
+
 export type Simulado = {
   id: string;
   titulo: string;
   descricao: string | null;
   componente: ComponenteCatalogo;
+  componentes?: ComponenteCatalogo[];
   qtdFacil: number;
   qtdMedio: number;
   qtdDificil: number;
   totalQuestoes: number;
   vagas: number;
+  totalInscritos: number;
+  vagasDisponiveis: number;
   duracaoMinutos: number;
   janelaInicio: string;
   janelaFim: string;
@@ -95,4 +122,7 @@ export type SimuladoCreatePayload = {
   turmaIds: string[];
   questaoIds: string[];
   embaralharAlternativas: boolean;
+  geraCertificado: boolean;
+  nivelEnsinoId: string | null;
+  notaMinimaCertificacao: number | null;
 };

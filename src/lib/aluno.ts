@@ -12,13 +12,16 @@ export interface EtapaDisponivel {
   duracaoMinutos: number
   totalQuestoes: number
   vagas: number
+  vagasTotais: number
+  vagasDisponiveis: number
   janelaInicio: string
   janelaFim: string
   ativa: boolean
   jaIniciada: boolean
   inscrito: boolean
-  statusResultado?: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
-  resultadoId?: string
+  geraCertificado: boolean
+  statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO" | null
+  resultadoId: string | null
 }
 
 export interface AlternativaParaAluno {
@@ -114,6 +117,18 @@ export async function getEtapasDisponiveis(): Promise<EtapaDisponivel[]> {
   return res.json()
 }
 
+export interface UsuarioLogado {
+  id: string
+  nome: string
+  tipo: string
+}
+
+export async function getUsuarioLogado(): Promise<UsuarioLogado> {
+  const res = await fetch("/api/auth/me", { cache: "no-store" })
+  if (!res.ok) throw new Error("Erro ao buscar usuário")
+  return res.json()
+}
+
 export async function inscreverEmProva(simuladoId: string): Promise<{ inscrito: boolean; simuladoId: string }> {
   const res = await fetch(`/api/aluno/inscrever/${simuladoId}`, { method: "POST" })
   if (!res.ok) {
@@ -185,5 +200,18 @@ export async function registrarViolacao(
     body: JSON.stringify({ tipo, detalhe }),
   })
   if (!res.ok) return { registrada: false, totalViolacoes: 0 }
+  return res.json()
+}
+
+export interface ProvaEmAndamento {
+  emAndamento: boolean
+  simuladoId: string | null
+  resultadoId: string | null
+  expiraEm: string | null
+}
+
+export async function getProvaEmAndamento(): Promise<ProvaEmAndamento> {
+  const res = await fetch("/api/aluno/prova-em-andamento", { cache: "no-store" })
+  if (!res.ok) return { emAndamento: false, simuladoId: null, resultadoId: null, expiraEm: null }
   return res.json()
 }

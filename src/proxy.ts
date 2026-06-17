@@ -7,7 +7,9 @@ import {
   type Role,
 } from "@/lib/auth";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+// "/verificar" é a validação pública de certificado (QR) — sem autenticação,
+// para qualquer instituição conferir a autenticidade sem login.
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/verificar"];
 
 const ROLE_PREFIXES: Record<Role, string> = {
   ADMIN: "/admin",

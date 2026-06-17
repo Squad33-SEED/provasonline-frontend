@@ -3,6 +3,11 @@ import { TOKEN_COOKIE } from "@/lib/auth";
 
 export const API_URL = process.env.API_URL ?? "http://localhost:3333";
 
+// URL pública do próprio frontend — usada em links que saem do sistema
+// (ex.: o QR Code do certificado, escaneado por instituições externas).
+export const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
 export type ApiError = {
   status: number;
   detail: string;

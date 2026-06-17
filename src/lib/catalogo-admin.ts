@@ -37,7 +37,7 @@ export interface AssuntoAdmin {
 
 
 export function getNiveisAdmin(): Promise<NivelAdmin[]> {
-  return apiGet<NivelAdmin[]>("/api/catalogo/niveis");
+  return apiGet<NivelAdmin[]>("/api/catalogo/niveis-todos");
 }
 
 export function criarNivel(data: {
