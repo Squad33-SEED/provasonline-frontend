@@ -55,6 +55,9 @@ export function DialogNovoAluno({
   const [dataNascimento, setDataNascimento] = React.useState("");
   const [necessidadeEspecial, setNecessidadeEspecial] = React.useState(false);
   const [turmaId, setTurmaId] = React.useState<string>(TURMA_NENHUMA);
+  const [candidatoExterno, setCandidatoExterno] = React.useState(false);
+  const [prereqValidado, setPrereqValidado] = React.useState(false);
+  const [prereqDocumento, setPrereqDocumento] = React.useState("");
   const [errors, setErrors] = React.useState<FormErrors>({});
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -66,6 +69,9 @@ export function DialogNovoAluno({
       setDataNascimento("");
       setNecessidadeEspecial(false);
       setTurmaId(TURMA_NENHUMA);
+      setCandidatoExterno(false);
+      setPrereqValidado(false);
+      setPrereqDocumento("");
       setErrors({});
       setSubmitting(false);
     }
@@ -116,6 +122,12 @@ export function DialogNovoAluno({
         dataNascimento,
         necessidadeEspecial,
         turmaId: turmaId === TURMA_NENHUMA ? null : turmaId,
+        tipoCandidato: candidatoExterno ? "EXTERNO" : "REGULAR",
+        prereqValidado: candidatoExterno ? prereqValidado : false,
+        prereqDocumento:
+          candidatoExterno && prereqValidado
+            ? prereqDocumento.trim() || null
+            : null,
       });
 
       toast.push({
@@ -288,6 +300,50 @@ export function DialogNovoAluno({
             />
             Aluno com necessidade especial
           </label>
+
+          <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-white/75">
+              <input
+                type="checkbox"
+                checked={candidatoExterno}
+                onChange={(e) => setCandidatoExterno(e.target.checked)}
+                disabled={submitting}
+                className="size-4 cursor-pointer rounded border-white/20 bg-white/[0.05] accent-amber-400"
+              />
+              Candidato externo (EJA / supletivo)
+            </label>
+
+            {candidatoExterno && (
+              <div className="flex flex-col gap-3 pl-6">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-white/75">
+                  <input
+                    type="checkbox"
+                    checked={prereqValidado}
+                    onChange={(e) => setPrereqValidado(e.target.checked)}
+                    disabled={submitting}
+                    className="size-4 cursor-pointer rounded border-white/20 bg-white/[0.05] accent-amber-400"
+                  />
+                  Pré-requisito (Fundamental II) validado
+                </label>
+
+                {prereqValidado && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="aluno-prereq-doc" className="text-xs text-white/70">
+                      Número do documento apresentado
+                    </Label>
+                    <Input
+                      id="aluno-prereq-doc"
+                      value={prereqDocumento}
+                      onChange={(e) => setPrereqDocumento(e.target.value)}
+                      placeholder="Nº do histórico ou certificado"
+                      disabled={submitting}
+                      className="h-10 rounded-lg border-white/10 bg-white/[0.03] text-white"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {errors.geral && (
             <div

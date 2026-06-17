@@ -151,7 +151,14 @@ function LinhaSimulado({ simulado }: { simulado: Simulado }) {
       </td>
       <td className="px-4 py-3 text-white/70">
         <div className="flex flex-col">
-          <span>{simulado.componente.nome}</span>
+          <span>
+            {(simulado.componentes?.length
+              ? simulado.componentes
+              : [simulado.componente]
+            )
+              .map((c) => c.nome)
+              .join(" · ")}
+          </span>
           <span className="text-[11px] text-white/40">
             {simulado.componente.modalidade.nome}
           </span>
@@ -178,6 +185,10 @@ function LinhaSimulado({ simulado }: { simulado: Simulado }) {
       </td>
       <td className="px-4 py-3 text-xs text-white/70">{janela}</td>
       <td className="px-4 py-3 text-right tabular-nums text-white/70">
+        <span className={simulado.totalInscritos > 0 ? "text-amber-300" : ""}>
+          {simulado.totalInscritos}
+        </span>
+        <span className="text-white/30"> / </span>
         {simulado.vagas}
       </td>
       <td className="px-4 py-3 text-right">

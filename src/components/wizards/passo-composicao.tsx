@@ -45,7 +45,11 @@ export function PassoComposicao({ state, dispatch }: Props) {
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
           Componente selecionado
         </p>
-        <p className="mt-1 text-sm font-medium text-white">{passo1.componenteNome}</p>
+        <p className="mt-1 text-sm font-medium text-white">
+        {passo1.componentesNomes.length > 0
+        ? passo1.componentesNomes.join(" / ")
+        : passo1.componenteNome}
+        </p>
       </div>
 
       <div className="flex gap-2 rounded-lg border border-white/10 bg-white/[0.02] p-1">
@@ -66,11 +70,11 @@ export function PassoComposicao({ state, dispatch }: Props) {
       {modo === "SORTEIO" ? (
         <SorteioView state={state} dispatch={dispatch} />
       ) : (
-        <ManualView
-          componenteId={passo1.componenteId}
-          selecionadas={passo3.questaoIds}
-          dispatch={dispatch}
-        />
+      <ManualView
+      componenteIds={passo1.componenteIds}
+      selecionadas={passo3.questaoIds}
+      dispatch={dispatch}
+      />
       )}
 
       <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm text-white/75">
@@ -181,11 +185,11 @@ function SorteioView({ state, dispatch }: Props) {
 }
 
 function ManualView({
-  componenteId,
+  componenteIds,
   selecionadas,
   dispatch,
 }: {
-  componenteId: string;
+  componenteIds: string[];
   selecionadas: string[];
   dispatch: React.Dispatch<WizardAction>;
 }) {
@@ -198,7 +202,7 @@ function ManualView({
     let ativo = true;
     setCarregando(true);
     setErro(null);
-    getBancoQuestoesAdmin(componenteId)
+    getBancoQuestoesAdmin(componenteIds)
       .then((lista) => {
         if (ativo) setQuestoes(lista);
       })
@@ -211,7 +215,7 @@ function ManualView({
     return () => {
       ativo = false;
     };
-  }, [componenteId]);
+  }, [componenteIds]);
 
   const visiveis =
     filtro === "TODAS" ? questoes : questoes.filter((q) => q.dificuldade === filtro);

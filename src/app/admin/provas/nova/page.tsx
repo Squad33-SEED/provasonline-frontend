@@ -52,31 +52,31 @@ export default function NovaProvaPage() {
   }, [carregarComponentes]);
 
   const carregarDisponibilidade = React.useCallback(
-    async (componenteId: string) => {
-      dispatch({ type: "INICIAR_LOAD_DISPONIBILIDADE" });
-      try {
-        const disponibilidade = await getDisponibilidade(componenteId);
-        dispatch({ type: "SET_DISPONIBILIDADE", disponibilidade });
-      } catch (err) {
-        const detail = isApiClientError(err)
-          ? err.detail
-          : "Erro ao carregar disponibilidade de questões";
-        toast.push({
-          variant: "destructive",
-          title: "Falha ao carregar disponibilidade",
-          description: detail,
-        });
-      }
-    },
-    [dispatch, toast],
-  );
+  async (componenteIds: string[]) => {
+    dispatch({ type: "INICIAR_LOAD_DISPONIBILIDADE" });
+    try {
+      const disponibilidade = await getDisponibilidade(componenteIds);
+      dispatch({ type: "SET_DISPONIBILIDADE", disponibilidade });
+    } catch (err) {
+      const detail = isApiClientError(err)
+        ? err.detail
+        : "Erro ao carregar disponibilidade de questões";
+      toast.push({
+        variant: "destructive",
+        title: "Falha ao carregar disponibilidade",
+        description: detail,
+      });
+    }
+  },
+  [dispatch, toast],
+);
 
   function aoAvancar() {
     if (state.passoAtual === 1) {
       if (!passo1Valido(state)) return;
-      if (!state.disponibilidade && state.passo1.componenteId) {
-        void carregarDisponibilidade(state.passo1.componenteId);
-      }
+      if (!state.disponibilidade && state.passo1.componenteIds.length > 0) {
+  void carregarDisponibilidade(state.passo1.componenteIds);
+}
       dispatch({ type: "AVANCAR" });
       return;
     }
