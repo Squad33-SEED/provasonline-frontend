@@ -3,6 +3,8 @@ import type {
   ComponenteCatalogo,
   Disponibilidade,
   NivelCatalogo,
+  ProfessorQuestaoItem,
+  QuestaoBanco,
   Simulado,
   SimuladoCreatePayload,
   Turma,
@@ -12,16 +14,45 @@ export async function getComponentes(): Promise<ComponenteCatalogo[]> {
   return apiGet<ComponenteCatalogo[]>("/api/catalogo/componentes");
 }
 
+export async function getBancoQuestoes(
+  componenteId: string,
+): Promise<QuestaoBanco[]> {
+  return apiGet<QuestaoBanco[]>(
+    `/api/simulados/banco?componenteId=${encodeURIComponent(componenteId)}`,
+  );
+}
+
+export async function getBancoQuestoesProfessor(
+  componenteId: string,
+): Promise<ProfessorQuestaoItem[]> {
+  return apiGet<ProfessorQuestaoItem[]>(
+    `/api/professor/questoes?componenteId=${encodeURIComponent(componenteId)}`,
+  );
+}
+
 export async function getNiveis(): Promise<NivelCatalogo[]> {
   return apiGet<NivelCatalogo[]>("/api/catalogo/niveis");
 }
 
 export async function getDisponibilidade(
-  componenteId: string,
+  componenteIds: string | string[],
 ): Promise<Disponibilidade> {
-  return apiGet<Disponibilidade>(
-    `/api/simulados/disponibilidade?componenteId=${encodeURIComponent(componenteId)}`,
+  const ids = Array.isArray(componenteIds) ? componenteIds : [componenteIds];
+
+  const listas = await Promise.all(
+    ids.map((id) =>
+      apiGet<Disponibilidade>(
+        `/api/simulados/disponibilidade?componenteId=${encodeURIComponent(id)}`,
+      ),
+    ),
   );
+
+  return {
+    componenteId: ids[0] ?? "",
+    facil: listas.reduce((total, item) => total + item.facil, 0),
+    medio: listas.reduce((total, item) => total + item.medio, 0),
+    dificil: listas.reduce((total, item) => total + item.dificil, 0),
+  };
 }
 
 export async function getSimulados(): Promise<Simulado[]> {
@@ -38,20 +69,22 @@ export async function criarSimulado(
   return apiPost<Simulado>("/api/simulados", payload);
 }
 
-export interface QuestaoBanco {
-  id: string;
-  enunciado: string;
-  assunto: string;
-  dificuldade: "FACIL" | "MEDIO" | "DIFICIL";
-  componenteId: string;
-}
+export type { QuestaoBanco };
 
 export async function getBancoQuestoesAdmin(
-  componenteId: string,
+  componenteIds: string | string[],
 ): Promise<QuestaoBanco[]> {
-  return apiGet<QuestaoBanco[]>(
-    `/api/simulados/banco?componenteId=${encodeURIComponent(componenteId)}`,
+  const ids = Array.isArray(componenteIds) ? componenteIds : [componenteIds];
+
+  const listas = await Promise.all(
+    ids.map((id) =>
+      apiGet<QuestaoBanco[]>(
+        `/api/simulados/banco?componenteId=${encodeURIComponent(id)}`,
+      ),
+    ),
   );
+
+  return listas.flat();
 }
 
 export interface RelatorioItemAluno {

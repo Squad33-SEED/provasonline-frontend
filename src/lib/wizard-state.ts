@@ -8,6 +8,8 @@ export type PassoIdentificacaoState = {
   descricao: string;
   componenteId: string;
   componenteNome: string;
+  componenteIds: string[];
+  componentesNomes: string[];
   turmaIds: string[];
   geraCertificado: boolean;
   nivelEnsinoId: string;
@@ -62,7 +64,8 @@ export type WizardAction =
   | { type: "INICIAR_LOAD_COMPONENTES" }
   | { type: "INICIAR_LOAD_DISPONIBILIDADE" }
   | { type: "SET_DISPONIBILIDADE"; disponibilidade: Disponibilidade }
-  | { type: "ERRO_SUBMIT"; mensagem: string }
+  | { type: "ERRO_SUBMIT"; mensagem: string }| 
+    { type: "TOGGLE_COMPONENTE"; id: string; nome: string }
   | { type: "LIMPAR_ERRO" };
 
 const ESTADO_INICIAL: WizardState = {
@@ -72,6 +75,8 @@ const ESTADO_INICIAL: WizardState = {
     descricao: "",
     componenteId: "",
     componenteNome: "",
+    componenteIds: [],
+    componentesNomes: [],
     turmaIds: [],
     geraCertificado: false,
     nivelEnsinoId: "",
@@ -120,21 +125,55 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
 
     case "SELECIONAR_COMPONENTE":
       return {
-        ...state,
-        passo1: {
-          ...state.passo1,
-          componenteId: action.id,
-          componenteNome: action.nome,
-        },
-        disponibilidade: null,
-        passo3: {
-          ...state.passo3,
-          qtdFacil: 0,
-          qtdMedio: 0,
-          qtdDificil: 0,
-          questaoIds: [],
-        },
-      };
+      ...state,
+      passo1: {
+      ...state.passo1,
+      componenteId: action.id,
+      componenteNome: action.nome,
+      componenteIds: [action.id],
+      componentesNomes: [action.nome],
+      },
+      disponibilidade: null,
+      passo3: {
+      ...state.passo3,
+      qtdFacil: 0,
+      qtdMedio: 0,
+      qtdDificil: 0,
+      questaoIds: [],
+    },
+  };
+case "TOGGLE_COMPONENTE": {
+  const ids = state.passo1.componenteIds;
+  const nomes = state.passo1.componentesNomes;
+  const jaExiste = ids.includes(action.id);
+
+  const novosIds = jaExiste
+    ? ids.filter((id) => id !== action.id)
+    : [...ids, action.id];
+
+  const novosNomes = jaExiste
+    ? nomes.filter((nome) => nome !== action.nome)
+    : [...nomes, action.nome];
+
+  return {
+    ...state,
+    passo1: {
+      ...state.passo1,
+      componenteIds: novosIds,
+      componentesNomes: novosNomes,
+      componenteId: novosIds[0] ?? "",
+      componenteNome: novosNomes[0] ?? "",
+    },
+    disponibilidade: null,
+    passo3: {
+      ...state.passo3,
+      qtdFacil: 0,
+      qtdMedio: 0,
+      qtdDificil: 0,
+      questaoIds: [],
+    },
+  };
+}
 
     case "TOGGLE_TURMA": {
       const ids = state.passo1.turmaIds;
@@ -237,7 +276,7 @@ export function useWizard() {
 
 export function passo1Valido(state: WizardState): boolean {
   const titulo = state.passo1.titulo.trim();
-  if (titulo.length < 3 || state.passo1.componenteId.length === 0) return false;
+  if (titulo.length < 3 || state.passo1.componenteIds.length === 0) return false;
   if (state.passo1.geraCertificado && !state.passo1.nivelEnsinoId) return false;
   return true;
 }
@@ -301,7 +340,8 @@ export function montarPayloadSubmit(state: WizardState) {
   return {
     titulo: state.passo1.titulo.trim(),
     descricao: state.passo1.descricao.trim() || null,
-    componenteId: state.passo1.componenteId,
+    componenteId: state.passo1.componenteIds[0],
+    componenteIds: state.passo1.componenteIds,
     qtdFacil: manual ? 0 : state.passo3.qtdFacil,
     qtdMedio: manual ? 0 : state.passo3.qtdMedio,
     qtdDificil: manual ? 0 : state.passo3.qtdDificil,

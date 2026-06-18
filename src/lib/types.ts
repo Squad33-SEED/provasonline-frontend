@@ -69,11 +69,30 @@ export type Disponibilidade = {
   dificil: number;
 };
 
+export type QuestaoBanco = {
+  id: string;
+  enunciado: string;
+  assunto: string;
+  dificuldade: string;
+  componenteId: string;
+};
+
+export type ProfessorQuestaoItem = {
+  id: string;
+  enunciado: string;
+  componente: string;
+  assunto: string;
+  dificuldade: string;
+  ativa: boolean;
+  totalAlternativas: number;
+};
+
 export type Simulado = {
   id: string;
   titulo: string;
   descricao: string | null;
   componente: ComponenteCatalogo;
+  componentes?: ComponenteCatalogo[];
   qtdFacil: number;
   qtdMedio: number;
   qtdDificil: number;

@@ -1,0 +1,38 @@
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+import { API_URL } from "@/lib/api";
+
+async function token() {
+  return (await cookies()).get("seed_token")?.value;
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ componenteId: string }> }
+) {
+  const t = await token();
+  if (!t) return NextResponse.json({ detail: "Não autenticado" }, { status: 401 });
+  const { componenteId } = await params;
+  const body = await req.json();
+  const res = await fetch(`${API_URL}/catalogo/componentes/${componenteId}/assuntos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  return NextResponse.json(await res.json(), { status: res.status });
+}
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ componenteId: string }> }
+) {
+  const t = await token();
+  if (!t) return NextResponse.json([], { status: 401 });
+  const { componenteId } = await params;
+  const res = await fetch(`${API_URL}/catalogo/assuntos/todos/${componenteId}`, {
+    headers: { Authorization: `Bearer ${t}` },
+    cache: "no-store",
+  });
+  return NextResponse.json(await res.json(), { status: res.status });
+}
