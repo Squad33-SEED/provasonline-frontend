@@ -33,6 +33,7 @@ function montarCsv(rel: RelatorioEtapa): string {
   const linhas: string[] = [];
   linhas.push(["Etapa", rel.titulo].map(csvCampo).join(";"));
   linhas.push(["Componente", rel.componente].map(csvCampo).join(";"));
+  linhas.push(["Inscritos", rel.inscritos].map(csvCampo).join(";"));
   linhas.push(["Total de alunos", rel.totalAlunos].map(csvCampo).join(";"));
   linhas.push(["Finalizados", rel.finalizados].map(csvCampo).join(";"));
   linhas.push(["Média geral", numBr(rel.mediaNota)].map(csvCampo).join(";"));
