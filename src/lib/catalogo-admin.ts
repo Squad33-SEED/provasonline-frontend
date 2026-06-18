@@ -22,6 +22,7 @@ export interface ComponenteAdmin {
   nome: string;
   codigo: string;
   ativo: boolean;
+  questionsSubjectSlug?: string | null;
   totalAssuntos: number;
   totalQuestoes: number;
   modalidade?: { id: string; nome: string };
@@ -89,13 +90,14 @@ export function criarComponente(data: {
   nome: string;
   codigo: string;
   assuntos?: string[];
+  questionsSubjectSlug?: string | null;
 }): Promise<ComponenteAdmin> {
   return apiPost<ComponenteAdmin>("/api/catalogo/componentes-admin", data);
 }
 
 export function editarComponente(
   id: string,
-  data: { nome: string; codigo: string }
+  data: { nome: string; codigo: string; questionsSubjectSlug?: string | null }
 ): Promise<ComponenteAdmin> {
   return apiPut<ComponenteAdmin>(`/api/catalogo/componentes-admin/${id}`, data);
 }
