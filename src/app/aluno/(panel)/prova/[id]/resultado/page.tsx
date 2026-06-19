@@ -80,6 +80,40 @@ export default function ResultadoProvaPage() {
     ? "bg-amber-500"
     : "bg-red-500"
 
+  const corNotaComponente = (nota: number) =>
+    nota >= 7 ? "text-emerald-400" : nota >= 5 ? "text-amber-400" : "text-red-400"
+  const corBarraComponente = (nota: number) =>
+    nota >= 7 ? "bg-emerald-500" : nota >= 5 ? "bg-amber-500" : "bg-red-500"
+
+  // Agrupa o gabarito por componente quando a etapa é multi-componente (ENEM).
+  const nomeComponente = new Map(
+    (resultado.componentes ?? []).map((c) => [c.componenteId, c.componente]),
+  )
+  const gabaritoPorComponente: {
+    componenteId: string | null
+    nome: string | null
+    itens: NonNullable<ResultadoResponse["gabarito"]>
+  }[] = []
+  if (resultado.gabarito) {
+    const indice = new Map<string | null, number>()
+    for (const item of resultado.gabarito) {
+      const chave = item.componenteId ?? null
+      let pos = indice.get(chave)
+      if (pos === undefined) {
+        pos = gabaritoPorComponente.length
+        indice.set(chave, pos)
+        gabaritoPorComponente.push({
+          componenteId: chave,
+          nome: chave ? nomeComponente.get(chave) ?? null : null,
+          itens: [],
+        })
+      }
+      gabaritoPorComponente[pos].itens.push(item)
+    }
+  }
+  const agruparGabarito =
+    gabaritoPorComponente.filter((g) => g.componenteId !== null).length > 1
+
   return (
     <div className="min-h-screen bg-zinc-950 px-4 py-8">
       <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
@@ -130,6 +164,47 @@ export default function ResultadoProvaPage() {
           </div>
         </div>
 
+        {resultado.componentes && resultado.componentes.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col gap-4">
+            <h2 className="text-sm font-semibold text-zinc-300">Desempenho por componente</h2>
+            <div className="flex flex-col gap-3.5">
+              {resultado.componentes.map((c) => {
+                const pct = c.total > 0 ? Math.round((c.acertos / c.total) * 100) : 0
+                return (
+                  <div key={c.componenteId} className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-zinc-200 text-sm truncate">{c.componente}</span>
+                        {c.aprovado !== null && (
+                          <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                            c.aprovado
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-red-500/15 text-red-400"
+                          }`}>
+                            {c.aprovado ? "Aprovado" : "Pendente"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-zinc-500 text-xs tabular-nums">{c.acertos}/{c.total}</span>
+                        <span className={`text-sm font-bold tabular-nums ${corNotaComponente(c.nota)}`}>
+                          {c.nota.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${corBarraComponente(c.nota)}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {resultado.gabaritoDisponivel && resultado.gabarito ? (
           <>
             <button
@@ -144,47 +219,62 @@ export default function ResultadoProvaPage() {
             </button>
 
             {gabaritoAberto && (
-              <div className="flex flex-col gap-3">
-                {resultado.gabarito.map((item) => (
-                  <div
-                    key={item.questaoId}
-                    className={`flex flex-col gap-3 px-5 py-4 rounded-xl border ${
-                      item.correta
-                        ? "border-emerald-800 bg-emerald-950/30"
-                        : "border-red-900 bg-red-950/20"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5 ${
-                        item.correta
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}>
-                        {item.correta
-                          ? <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                          : <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        }
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-zinc-500 text-xs block mb-1">Questão {item.ordem}</span>
-                        <p className="text-zinc-200 text-sm leading-relaxed">{item.enunciado}</p>
-                      </div>
-                    </div>
-
-                    <div className="ml-10 flex flex-col gap-1.5">
-                      <div className="flex items-start gap-2 text-sm">
-                        <span className="text-zinc-500 shrink-0">Sua resposta:</span>
-                        <span className={`font-medium ${item.correta ? "text-emerald-400" : "text-red-400"}`}>
-                          {item.alternativaMarcada ?? "Não respondida"}
+              <div className="flex flex-col gap-5">
+                {gabaritoPorComponente.map((grupo) => (
+                  <div key={grupo.componenteId ?? "_"} className="flex flex-col gap-3">
+                    {agruparGabarito && (
+                      <div className="flex items-center gap-2 px-1">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                          {grupo.nome ?? "Sem componente"}
                         </span>
+                        <span className="text-zinc-600 text-xs">
+                          ({grupo.itens.filter((i) => i.correta).length}/{grupo.itens.length})
+                        </span>
+                        <div className="flex-1 h-px bg-zinc-800" />
                       </div>
-                      {!item.correta && (
-                        <div className="flex items-start gap-2 text-sm">
-                          <span className="text-zinc-500 shrink-0">Resposta correta:</span>
-                          <span className="font-medium text-emerald-400">{item.alternativaCorreta}</span>
+                    )}
+                    {grupo.itens.map((item) => (
+                      <div
+                        key={item.questaoId}
+                        className={`flex flex-col gap-3 px-5 py-4 rounded-xl border ${
+                          item.correta
+                            ? "border-emerald-800 bg-emerald-950/30"
+                            : "border-red-900 bg-red-950/20"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5 ${
+                            item.correta
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : "bg-red-500/20 text-red-400"
+                          }`}>
+                            {item.correta
+                              ? <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                              : <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-zinc-500 text-xs block mb-1">Questão {item.ordem}</span>
+                            <p className="text-zinc-200 text-sm leading-relaxed">{item.enunciado}</p>
+                          </div>
                         </div>
-                      )}
-                    </div>
+
+                        <div className="ml-10 flex flex-col gap-1.5">
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="text-zinc-500 shrink-0">Sua resposta:</span>
+                            <span className={`font-medium ${item.correta ? "text-emerald-400" : "text-red-400"}`}>
+                              {item.alternativaMarcada ?? "Não respondida"}
+                            </span>
+                          </div>
+                          {!item.correta && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <span className="text-zinc-500 shrink-0">Resposta correta:</span>
+                              <span className="font-medium text-emerald-400">{item.alternativaCorreta}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
