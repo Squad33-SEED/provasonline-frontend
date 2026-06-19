@@ -55,6 +55,21 @@ export async function getDisponibilidade(
   };
 }
 
+export async function getDisponibilidadePorComponente(
+  componenteIds: string[],
+): Promise<Record<string, Disponibilidade>> {
+  const entradas = await Promise.all(
+    componenteIds.map(async (id) => {
+      const disp = await apiGet<Disponibilidade>(
+        `/api/simulados/disponibilidade?componenteId=${encodeURIComponent(id)}`,
+      );
+      return [id, { ...disp, componenteId: id }] as const;
+    }),
+  );
+
+  return Object.fromEntries(entradas);
+}
+
 export async function getSimulados(): Promise<Simulado[]> {
   return apiGet<Simulado[]>("/api/simulados");
 }

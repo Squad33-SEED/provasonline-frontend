@@ -5,7 +5,8 @@ import { Slider } from "@/components/ui/slider";
 import { Tag } from "@/components/app-shell";
 import {
   passo3Valido,
-  type ModoComposicao,
+  totalComposicao,
+  usaComposicaoPorComponente,
   type WizardAction,
   type WizardState,
 } from "@/lib/wizard-state";
@@ -133,6 +134,10 @@ function SorteioView({ state, dispatch }: Props) {
     );
   }
 
+  if (usaComposicaoPorComponente(state)) {
+    return <ComposicaoPorComponenteView state={state} dispatch={dispatch} />;
+  }
+
   if (!disponibilidade) {
     return (
       <div className="flex h-40 items-center justify-center text-sm text-rose-300">
@@ -179,6 +184,90 @@ function SorteioView({ state, dispatch }: Props) {
           </p>
         </div>
         <StatusBadge valido={valido} totalQuestoes={totalQuestoes} />
+      </div>
+    </div>
+  );
+}
+
+function ComposicaoPorComponenteView({ state, dispatch }: Props) {
+  const { passo1, passo3, disponibilidadePorComponente } = state;
+
+  const prontos = passo1.componenteIds.every((id) => disponibilidadePorComponente[id]);
+  if (!prontos) {
+    return (
+      <div className="flex h-40 items-center justify-center text-sm text-white/40">
+        Carregando disponibilidade por componente...
+      </div>
+    );
+  }
+
+  const total = totalComposicao(state);
+  const valido = passo3Valido(state);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <p className="text-sm text-white/55">
+        Defina quantas questões de cada dificuldade entram por componente. Cada
+        componente é pontuado e certificado separadamente.
+      </p>
+
+      {passo1.componenteIds.map((id, idx) => {
+        const disp = disponibilidadePorComponente[id];
+        const cota = passo3.composicao[id] ?? { facil: 0, medio: 0, dificil: 0 };
+        const nome = passo1.componentesNomes[idx] ?? "Componente";
+        const subtotal = cota.facil + cota.medio + cota.dificil;
+
+        return (
+          <div
+            key={id}
+            className="flex flex-col gap-4 rounded-lg border border-white/10 bg-white/[0.02] p-4"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-white">{nome}</span>
+              <span className="font-mono text-xs text-white/50">
+                {subtotal} {subtotal === 1 ? "questão" : "questões"}
+              </span>
+            </div>
+
+            <SliderDificuldade
+              label="Fáceis"
+              tom="emerald"
+              quantidade={cota.facil}
+              maximo={disp.facil}
+              onChange={(valor) =>
+                dispatch({ type: "ATUALIZAR_COMPOSICAO", componenteId: id, dificuldade: "facil", valor })
+              }
+            />
+            <SliderDificuldade
+              label="Médias"
+              tom="amber"
+              quantidade={cota.medio}
+              maximo={disp.medio}
+              onChange={(valor) =>
+                dispatch({ type: "ATUALIZAR_COMPOSICAO", componenteId: id, dificuldade: "medio", valor })
+              }
+            />
+            <SliderDificuldade
+              label="Difíceis"
+              tom="rose"
+              quantidade={cota.dificil}
+              maximo={disp.dificil}
+              onChange={(valor) =>
+                dispatch({ type: "ATUALIZAR_COMPOSICAO", componenteId: id, dificuldade: "dificil", valor })
+              }
+            />
+          </div>
+        );
+      })}
+
+      <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] p-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+            Total por aluno
+          </p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{total}</p>
+        </div>
+        <StatusBadge valido={valido} totalQuestoes={total} />
       </div>
     </div>
   );

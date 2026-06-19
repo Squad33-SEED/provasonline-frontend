@@ -14,6 +14,7 @@ import {
   criarSimulado,
   getComponentes,
   getDisponibilidade,
+  getDisponibilidadePorComponente,
 } from "@/lib/simulados";
 import { isApiClientError } from "@/lib/api-client";
 import {
@@ -71,12 +72,36 @@ export default function NovaProvaPage() {
   [dispatch, toast],
 );
 
+  const carregarDisponibilidadePorComponente = React.useCallback(
+    async (componenteIds: string[]) => {
+      try {
+        const mapa = await getDisponibilidadePorComponente(componenteIds);
+        dispatch({ type: "SET_DISPONIBILIDADE_POR_COMPONENTE", mapa });
+      } catch (err) {
+        const detail = isApiClientError(err)
+          ? err.detail
+          : "Erro ao carregar disponibilidade por componente";
+        toast.push({
+          variant: "destructive",
+          title: "Falha ao carregar disponibilidade",
+          description: detail,
+        });
+      }
+    },
+    [dispatch, toast],
+  );
+
   function aoAvancar() {
     if (state.passoAtual === 1) {
       if (!passo1Valido(state)) return;
-      if (!state.disponibilidade && state.passo1.componenteIds.length > 0) {
-  void carregarDisponibilidade(state.passo1.componenteIds);
-}
+      if (state.passo1.componenteIds.length > 0) {
+        if (!state.disponibilidade) {
+          void carregarDisponibilidade(state.passo1.componenteIds);
+        }
+        if (state.passo1.componenteIds.length > 1) {
+          void carregarDisponibilidadePorComponente(state.passo1.componenteIds);
+        }
+      }
       dispatch({ type: "AVANCAR" });
       return;
     }
