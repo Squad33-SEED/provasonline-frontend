@@ -27,11 +27,17 @@ export type PassoJanelaState = {
 
 export type ModoComposicao = "SORTEIO" | "MANUAL";
 
+export type DificuldadeCota = "facil" | "medio" | "dificil";
+
+export type CotaComponente = { facil: number; medio: number; dificil: number };
+
 export type PassoComposicaoState = {
   modo: ModoComposicao;
   qtdFacil: number;
   qtdMedio: number;
   qtdDificil: number;
+  // Cotas POR componente (etapa multi-componente estilo ENEM). Chave = componenteId.
+  composicao: Record<string, CotaComponente>;
   questaoIds: string[];
   embaralharAlternativas: boolean;
 };
@@ -42,6 +48,7 @@ export type WizardState = {
   passo2: PassoJanelaState;
   passo3: PassoComposicaoState;
   disponibilidade: Disponibilidade | null;
+  disponibilidadePorComponente: Record<string, Disponibilidade>;
   carregandoDisponibilidade: boolean;
   componentes: ComponenteCatalogo[];
   carregandoComponentes: boolean;
@@ -55,6 +62,8 @@ export type WizardAction =
   | { type: "TOGGLE_TURMA"; turmaId: string }
   | { type: "ATUALIZAR_PASSO_2"; campo: keyof PassoJanelaState; valor: string }
   | { type: "ATUALIZAR_PASSO_3"; campo: "qtdFacil" | "qtdMedio" | "qtdDificil"; valor: number }
+  | { type: "ATUALIZAR_COMPOSICAO"; componenteId: string; dificuldade: DificuldadeCota; valor: number }
+  | { type: "SET_DISPONIBILIDADE_POR_COMPONENTE"; mapa: Record<string, Disponibilidade> }
   | { type: "SET_MODO_COMPOSICAO"; modo: ModoComposicao }
   | { type: "TOGGLE_QUESTAO"; questaoId: string }
   | { type: "SET_EMBARALHAR"; valor: boolean }
@@ -95,10 +104,12 @@ const ESTADO_INICIAL: WizardState = {
     qtdFacil: 0,
     qtdMedio: 0,
     qtdDificil: 0,
+    composicao: {},
     questaoIds: [],
     embaralharAlternativas: false,
   },
   disponibilidade: null,
+  disponibilidadePorComponente: {},
   carregandoDisponibilidade: false,
   componentes: [],
   carregandoComponentes: false,
@@ -134,11 +145,13 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       componentesNomes: [action.nome],
       },
       disponibilidade: null,
+      disponibilidadePorComponente: {},
       passo3: {
       ...state.passo3,
       qtdFacil: 0,
       qtdMedio: 0,
       qtdDificil: 0,
+      composicao: {},
       questaoIds: [],
     },
   };
@@ -165,11 +178,13 @@ case "TOGGLE_COMPONENTE": {
       componenteNome: novosNomes[0] ?? "",
     },
     disponibilidade: null,
+    disponibilidadePorComponente: {},
     passo3: {
       ...state.passo3,
       qtdFacil: 0,
       qtdMedio: 0,
       qtdDificil: 0,
+      composicao: {},
       questaoIds: [],
     },
   };
@@ -199,6 +214,31 @@ case "TOGGLE_COMPONENTE": {
       return {
         ...state,
         passo3: { ...state.passo3, [action.campo]: action.valor },
+      };
+
+    case "ATUALIZAR_COMPOSICAO": {
+      const atual = state.passo3.composicao[action.componenteId] ?? {
+        facil: 0,
+        medio: 0,
+        dificil: 0,
+      };
+      return {
+        ...state,
+        passo3: {
+          ...state.passo3,
+          composicao: {
+            ...state.passo3.composicao,
+            [action.componenteId]: { ...atual, [action.dificuldade]: action.valor },
+          },
+        },
+      };
+    }
+
+    case "SET_DISPONIBILIDADE_POR_COMPONENTE":
+      return {
+        ...state,
+        disponibilidadePorComponente: action.mapa,
+        carregandoDisponibilidade: false,
       };
 
     case "SET_MODO_COMPOSICAO":
@@ -300,11 +340,38 @@ export function passo2Valido(state: WizardState): boolean {
   return true;
 }
 
+// Composição POR componente: ativa no modo SORTEIO quando há 2+ componentes
+// (etapa multi-componente estilo ENEM). Com 1 componente, segue a cota global.
+export function usaComposicaoPorComponente(state: WizardState): boolean {
+  return state.passo3.modo === "SORTEIO" && state.passo1.componenteIds.length > 1;
+}
+
+export function totalComposicao(state: WizardState): number {
+  return state.passo1.componenteIds.reduce((soma, id) => {
+    const c = state.passo3.composicao[id];
+    return soma + (c ? c.facil + c.medio + c.dificil : 0);
+  }, 0);
+}
+
 export function passo3Valido(state: WizardState): boolean {
   const p = state.passo3;
 
   if (p.modo === "MANUAL") {
     return p.questaoIds.length >= 1;
+  }
+
+  if (usaComposicaoPorComponente(state)) {
+    let total = 0;
+    for (const id of state.passo1.componenteIds) {
+      const cota = p.composicao[id] ?? { facil: 0, medio: 0, dificil: 0 };
+      const disp = state.disponibilidadePorComponente[id];
+      if (!disp) return false;
+      if (cota.facil > disp.facil || cota.medio > disp.medio || cota.dificil > disp.dificil) {
+        return false;
+      }
+      total += cota.facil + cota.medio + cota.dificil;
+    }
+    return total >= 1;
   }
 
   const total = p.qtdFacil + p.qtdMedio + p.qtdDificil;
@@ -336,15 +403,38 @@ export function montarPayloadSubmit(state: WizardState) {
   if (!inicio || !fim) return null;
 
   const manual = state.passo3.modo === "MANUAL";
+  const porComponente = !manual && usaComposicaoPorComponente(state);
+
+  // Quando há cotas por componente, o backend deriva componenteIds e os totais
+  // a partir de `composicao`; ainda enviamos as somas para coerência do payload.
+  const composicaoArray = porComponente
+    ? state.passo1.componenteIds.map((id) => {
+        const c = state.passo3.composicao[id] ?? { facil: 0, medio: 0, dificil: 0 };
+        return {
+          componenteId: id,
+          qtdFacil: c.facil,
+          qtdMedio: c.medio,
+          qtdDificil: c.dificil,
+        };
+      })
+    : [];
+
+  const somaCampo = (campo: DificuldadeCota) =>
+    composicaoArray.reduce(
+      (s, c) =>
+        s + (campo === "facil" ? c.qtdFacil : campo === "medio" ? c.qtdMedio : c.qtdDificil),
+      0,
+    );
 
   return {
     titulo: state.passo1.titulo.trim(),
     descricao: state.passo1.descricao.trim() || null,
     componenteId: state.passo1.componenteIds[0],
     componenteIds: state.passo1.componenteIds,
-    qtdFacil: manual ? 0 : state.passo3.qtdFacil,
-    qtdMedio: manual ? 0 : state.passo3.qtdMedio,
-    qtdDificil: manual ? 0 : state.passo3.qtdDificil,
+    composicao: composicaoArray,
+    qtdFacil: manual ? 0 : porComponente ? somaCampo("facil") : state.passo3.qtdFacil,
+    qtdMedio: manual ? 0 : porComponente ? somaCampo("medio") : state.passo3.qtdMedio,
+    qtdDificil: manual ? 0 : porComponente ? somaCampo("dificil") : state.passo3.qtdDificil,
     vagas: parseInt(state.passo2.vagas, 10),
     duracaoMinutos: parseInt(state.passo2.duracaoMinutos, 10),
     janelaInicio: inicio.toISOString(),
