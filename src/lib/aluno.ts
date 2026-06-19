@@ -60,10 +60,20 @@ export interface AutoSaveResponse {
 export interface GabaritoItemDetalhado {
   ordem: number
   questaoId: string
+  componenteId: string | null
   enunciado: string
   alternativaMarcada: string | null
   alternativaCorreta: string
   correta: boolean
+}
+
+export interface ComponenteResultado {
+  componenteId: string
+  componente: string
+  acertos: number
+  total: number
+  nota: number
+  aprovado: boolean | null
 }
 
 export interface SimuladoResumoResultado {
@@ -80,6 +90,7 @@ export interface ResultadoResponse {
   statusResultado: "EM_ANDAMENTO" | "FINALIZADO" | "EXPIRADO"
   finalizadoEm: string
   simulado: SimuladoResumoResultado
+  componentes: ComponenteResultado[] | null
   gabaritoDisponivel: boolean
   gabaritoDisponivelEm: string
   gabarito: GabaritoItemDetalhado[] | null
