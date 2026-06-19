@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { TOKEN_COOKIE } from "@/lib/auth";
 
 export const API_URL = process.env.API_URL ?? "http://localhost:3333";
@@ -7,6 +7,26 @@ export const API_URL = process.env.API_URL ?? "http://localhost:3333";
 // (ex.: o QR Code do certificado, escaneado por instituições externas).
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+// Resolve a URL pública real do frontend para links que saem do sistema.
+// Prioridade: NEXT_PUBLIC_APP_URL (domínio canônico) > host da própria
+// requisição (proxy da Vercel) > localhost. Sem isso o QR do certificado
+// apontava para http://localhost:3000, inacessível ao ser escaneado no celular.
+export async function getAppUrl(): Promise<string> {
+  const explicito = process.env.NEXT_PUBLIC_APP_URL;
+  if (explicito) return explicito.replace(/\/+$/, "");
+
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (host) {
+    const proto =
+      h.get("x-forwarded-proto") ??
+      (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+    return `${proto}://${host}`;
+  }
+
+  return "http://localhost:3000";
+}
 
 export type ApiError = {
   status: number;
