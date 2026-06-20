@@ -60,7 +60,15 @@ export default function NiveisPage() {
     void carregar();
   }, [carregar]);
 
-  async function handleToggleNivel(id: string) {
+  async function handleToggleNivel(id: string, ativo: boolean, nome: string) {
+    if (
+      ativo &&
+      !window.confirm(
+        `Desativar o nível "${nome}"? Isso também desativará suas modalidades, componentes, assuntos e questões.`,
+      )
+    ) {
+      return;
+    }
     try {
       await toggleNivel(id);
       await carregar();
@@ -124,7 +132,7 @@ export default function NiveisPage() {
                   <Button
                     variant="ghost"
                     className="h-7 rounded-lg px-2 text-xs text-white/60 hover:bg-white/[0.05] hover:text-white"
-                    onClick={() => handleToggleNivel(n.id)}
+                    onClick={() => handleToggleNivel(n.id, n.ativo, n.nome)}
                   >
                     {n.ativo ? "Desativar" : "Ativar"}
                   </Button>
@@ -239,7 +247,15 @@ function ModalNivel({
     }
   }
 
-  async function handleToggleModalidade(id: string) {
+  async function handleToggleModalidade(id: string, ativo: boolean, nome: string) {
+    if (
+      ativo &&
+      !window.confirm(
+        `Desativar a modalidade "${nome}"? Isso também desativará seus componentes, assuntos e questões.`,
+      )
+    ) {
+      return;
+    }
     try {
       const atualizada = await toggleModalidade(id);
       setModalidades((prev) => prev.map((m) => (m.id === id ? atualizada : m)));
@@ -359,7 +375,7 @@ function ModalNivel({
                             Editar
                           </button>
                           <button
-                            onClick={() => handleToggleModalidade(m.id)}
+                            onClick={() => handleToggleModalidade(m.id, m.ativo, m.nome)}
                             className={`text-xs ${m.ativo ? "text-rose-300 hover:text-rose-200" : "text-emerald-300 hover:text-emerald-200"}`}
                           >
                             {m.ativo ? "Desativar" : "Ativar"}
