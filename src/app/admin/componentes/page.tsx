@@ -53,7 +53,15 @@ export default function ComponentesPage() {
     void carregar();
   }, [carregar]);
 
-  async function handleToggle(id: string) {
+  async function handleToggle(id: string, ativo: boolean, nome: string) {
+    if (
+      ativo &&
+      !window.confirm(
+        `Desativar o componente "${nome}"? Isso também desativará seus assuntos e questões.`,
+      )
+    ) {
+      return;
+    }
     try {
       await toggleComponente(id);
       await carregar();
@@ -129,7 +137,7 @@ export default function ComponentesPage() {
                   <Button
                     variant="ghost"
                     className="h-7 rounded-lg px-2.5 text-xs text-white/60 hover:bg-white/[0.05] hover:text-white"
-                    onClick={() => handleToggle(c.id)}
+                    onClick={() => handleToggle(c.id, c.ativo, c.nome)}
                   >
                     {c.ativo ? "Desativar" : "Ativar"}
                   </Button>
